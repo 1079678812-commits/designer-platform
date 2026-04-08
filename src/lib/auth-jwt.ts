@@ -7,7 +7,7 @@ const TOKEN_MAX_AGE = 7 * 24 * 60 * 60 // 7 days
 
 // Warn if using default secret in production
 if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
-  console.error('⚠️  FATAL: JWT_SECRET must be set in production!')
+  console.warn('⚠️  WARNING: JWT_SECRET not set, using default secret. Please set JWT_SECRET env var.')
 }
 
 export interface TokenPayload {
