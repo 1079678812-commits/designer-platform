@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>最终登录测试 - 设计师平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            color: #333;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #2d3748;
+            background: linear-gradient(135deg, #00B578, #009A63);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            color: #718096;
+            margin-bottom: 30px;
+        }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .test-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .test-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            border-color: #00B578;
+        }
+        
+        .test-card.recommended {
+            border-color: #00B578;
+            background: linear-gradient(135deg, #f0fff4, #e6fffa);
+        }
+        
+        .test-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .test-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+        
+        .test-desc {
+            font-size: 0.9rem;
+            color: #718096;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        
+        .test-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #00B578;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+        }
+        
+        .test-btn:hover {
+            background: #009A63;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 181, 120, 0.3);
+        }
+        
+        .test-btn.secondary {
+            background: transparent;
+            color: #00B578;
+            border: 2px solid #00B578;
+        }
+        
+        .test-btn.secondary:hover {
+            background: #00B578;
+            color: white;
+        }
+        
+        .status-panel {
+            background: #f7fafc;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+            border-left: 5px solid #00B578;
+        }
+        
+        .status-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #2d3748;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .status-label {
+            font-weight: 500;
+            color: #4a5568;
+        }
+        
+        .status-value {
+            font-weight: 600;
+        }
+        
+        .status-ok {
+            color: #38a169;
+        }
+        
+        .status-error {
+            color: #e53e3e;
+        }
+        
+        .status-warning {
+            color: #d69e2e;
+        }
+        
+        .instructions {
+            background: #fffaf0;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+            border-left: 5px solid #d69e2e;
+        }
+        
+        .instructions-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #744210;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .instructions ol {
+            padding-left: 25px;
+            text-align: left;
+        }
+        
+        .instructions li {
+            margin-bottom: 10px;
+            color: #744210;
+            line-height: 1.5;
+        }
+        
+        .instructions strong {
+            color: #00B578;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+            color: #718096;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .test-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 设计师平台登录测试</h1>
+        <p class="subtitle">多种登录方案测试，确保功能正常</p>
+        
+        <div class="test-grid">
+            <div class="test-card recommended">
+                <div class="test-icon">🚀</div>
+                <div class="test-title">修复版登录</div>
+                <div class="test-desc">使用最可靠的跳转方式，绕过React Router问题</div>
+                <a href="/login/fixed" class="test-btn">测试修复版登录</a>
+            </div>
+            
+            <div class="test-card">
+                <div class="test-icon">🎯</div>
+                <div class="test-title">原始登录页面</div>
+                <div class="test-desc">标准React登录页面，已修复跳转问题</div>
+                <a href="/login" class="test-btn secondary">测试原始登录</a>
+            </div>
+            
+            <div class="test-card">
+                <div class="test-icon">⚡</div>
+                <div class="test-title">直接跳转测试</div>
+                <div class="test-desc">纯HTML/JS测试，完全绕过框架</div>
+                <a href="/login-direct.html" class="test-btn secondary">测试直接跳转</a>
+            </div>
+        </div>
+        
+        <div class="status-panel">
+            <div class="status-title">
+                <span>📊 系统状态监控</span>
+            </div>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-label">服务器状态</span>
+                    <span class="status-value status-ok" id="serverStatus">检测中...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">LocalStorage</span>
+                    <span class="status-value status-ok" id="storageStatus">检测中...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">登录状态</span>
+                    <span class="status-value" id="loginStatus">检测中...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">页面跳转</span>
+                    <span class="status-value" id="redirectStatus">待测试</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <div class="instructions-title">
+                <span>🔧 测试步骤说明</span>
+            </div>
+            <ol>
+                <li><strong>推荐测试</strong>：点击"修复版登录" → 点击"立即登录"按钮</li>
+                <li><strong>预期结果</strong>：弹出"登录成功"提示 → 自动跳转到服务页面</li>
+                <li><strong>备用方案</strong>：如果未跳转，使用"直接跳转测试"</li>
+                <li><strong>调试方法</strong>：按F12打开控制台，查看错误信息</li>
+                <li><strong>移动端测试</strong>：在手机浏览器访问相同地址</li>
+            </ol>
+        </div>
+        
+        <div class="footer">
+            <p>💡 提示：如果所有方法都失败，请检查网络连接或重启服务器</p>
+            <p>📱 移动端访问地址：<code>http://192.168.31.101:3000/login/fixed</code></p>
+        </div>
+    </div>
+    
+    <script>
+        // 检查系统状态
+        function checkSystemStatus() {
+            // 检查服务器
+            fetch('/')
+                .then(response => {
+                    const serverStatus = document.getElementById('serverStatus')
+                    if (response.ok) {
+                        serverStatus.textContent = '✅ 正常'
+                        serverStatus.className = 'status-value status-ok'
+                    } else {
+                        serverStatus.textContent = '❌ 异常'
+                        serverStatus.className = 'status-value status-error'
+                    }
+                })
+                .catch(() => {
+                    const serverStatus = document.getElementById('serverStatus')
+                    serverStatus.textContent = '❌ 无法连接'
+                    serverStatus.className = 'status-value status-error'
+                })
+            
+            // 检查LocalStorage
+            try {
+                localStorage.setItem('test_check', 'ok')
+                const testValue = localStorage.getItem('test_check')
+                localStorage.removeItem('test_check')
+                
+                const storageStatus = document.getElementById('storageStatus')
+                if (testValue === 'ok') {
+                    storageStatus.textContent = '✅ 正常'
+                    storageStatus.className = 'status-value status-ok'
+                } else {
+                    storageStatus.textContent = '❌ 异常'
+                    storageStatus.className = 'status-value status-error'
+                }
+            } catch (e) {
+                const storageStatus = document.getElementById('storageStatus')
+                storageStatus.textContent = '❌ 不可用'
+                storageStatus.className = 'status-value status-error'
+            }
+            
+            // 检查登录状态
+            const isLoggedIn = localStorage.getItem('isLoggedIn')
+            const userName = localStorage.getItem('userName')
+            const loginStatus = document.getElementById('loginStatus')
+            
+            if (isLoggedIn && userName) {
+                loginStatus.textContent = `✅ 已登录 (${userName})`
+                loginStatus.className = 'status-value status-ok'
+            } else {
+                loginStatus.textContent = '❌ 未登录'
+                loginStatus.className = 'status-value'
+            }
+        }
+        
+        // 页面加载时检查状态
+        document.addEventListener('DOMContentLoaded', checkSystemStatus)
+        
+        // 每3秒更新一次状态
+        setInterval(checkSystemStatus, 3000)
+        
+        // 测试跳转功能
+        function testRedirect(url) {
+            const redirectStatus = document.getElementById('redirectStatus')
+            redirectStatus.textContent = '跳转中...'
+            redirectStatus.className = 'status-value status-warning'
+            
+            console.log(`测试跳转到: ${url}`)
+            
+            // 延迟跳转，让用户看到状态变化
+            setTimeout(() => {
+                window.location.href = url
+            }, 500)
+            
+            // 3秒后检查是否跳转成功
+            setTimeout(() => {
+                if (window.location.pathname !== new URL(url, window.location.origin).pathname) {
+                    redirectStatus.textContent = '❌ 跳转失败'
+                    redirectStatus.className = 'status-value status-error'
+                    alert('跳转失败，请手动点击链接')
+                }
+            }, 3000)
+        }
+        
+        // 为所有测试按钮添加跳转跟踪
+        document.querySelectorAll('.test-btn').forEach(btn => {
+            if (btn.tagName === 'A') {
+                btn.addEventListener('click', function(e) {
+                    const href = this.getAttribute('href')
+                    if (href && !href.startsWith('#')) {
+                        e.preventDefault()
+                        testRedirect(href)
+                    }
+                })
+            }
+        })
+    </script>
+</body>
+</html>

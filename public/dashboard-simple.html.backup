@@ -1,0 +1,116 @@
+        // 使用模拟数据作为后备
+        renderOrders(getMockOrders())
+      } finally {
+        document.getElementById('loadingOrders').style.display = 'none'
+        document.getElementById('ordersTable').style.display = 'table'
+      }
+    }
+    
+    // 渲染订单表格
+    function renderOrders(orders) {
+      const tbody = document.getElementById('ordersBody')
+      
+      if (!orders || orders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: #86909C;">暂无订单数据</td></tr>'
+        return
+      }
+      
+      let html = ''
+      
+      orders.forEach(order => {
+        const statusClass = order.status === 'pending' ? 'status-pending' :
+                          order.status === 'processing' ? 'status-processing' : 'status-completed'
+        const statusText = order.status === 'pending' ? '待处理' :
+                          order.status === 'processing' ? '进行中' : '已完成'
+        
+        html += `
+          <tr>
+            <td>${order.orderNumber || 'ORD-' + order.id.slice(-6)}</td>
+            <td>${escapeHtml(order.clientName || '未知客户')}</td>
+            <td>${escapeHtml(order.serviceName || '未知服务')}</td>
+            <td>¥${order.totalAmount?.toLocaleString() || '0'}</td>
+            <td><span class="order-status ${statusClass}">${statusText}</span></td>
+            <td>${formatDate(order.dueDate)}</td>
+          </tr>
+        `
+      })
+      
+      tbody.innerHTML = html
+    }
+    
+    // 模拟订单数据（API失败时使用）
+    function getMockOrders() {
+      return [
+        {
+          id: '1',
+          orderNumber: 'ORD-20240401',
+          clientName: '张先生',
+          serviceName: '品牌设计',
+          totalAmount: 12000,
+          status: 'processing',
+          dueDate: '2026-04-10'
+        },
+        {
+          id: '2',
+          orderNumber: 'ORD-20240402',
+          clientName: '李女士',
+          serviceName: 'UI设计',
+          totalAmount: 8000,
+          status: 'pending',
+          dueDate: '2026-04-12'
+        },
+        {
+          id: '3',
+          orderNumber: 'ORD-20240403',
+          clientName: '王先生',
+          serviceName: '网站设计',
+          totalAmount: 15000,
+          status: 'completed',
+          dueDate: '2026-04-05'
+        }
+      ]
+    }
+    
+    // 快速操作函数
+    function createNewService() {
+      alert('跳转到新建服务页面')
+      window.location.href = '/services-simple.html?action=create'
+    }
+    
+    function addNewClient() {
+      alert('跳转到添加客户页面')
+      window.location.href = '/clients-simple.html?action=create'
+    }
+    
+    function createInvoice() {
+      alert('跳转到创建发票页面')
+      window.location.href = '/invoices-simple.html?action=create'
+    }
+    
+    function viewAnalytics() {
+      alert('跳转到数据分析页面')
+      window.location.href = '/analytics-simple.html'
+    }
+    
+    // 工具函数
+    function escapeHtml(text) {
+      const div = document.createElement('div')
+      div.textContent = text
+      return div.innerHTML
+    }
+    
+    function formatDate(dateString) {
+      if (!dateString) return '未设置'
+      const date = new Date(dateString)
+      return date.toLocaleDateString('zh-CN')
+    }
+    
+    function showError(message) {
+      const errorDiv = document.getElementById('errorMessage')
+      errorDiv.textContent = message
+      errorDiv.style.display = 'block'
+      setTimeout(() => errorDiv.style.display = 'none', 5000)
+    }
+  </script>
+</body>
+</html>

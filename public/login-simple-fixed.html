@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>设计师接单平台 - 登录（简化版）</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    
+    body {
+      background-color: #F5F6FA;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    
+    .login-container {
+      width: 100%;
+      max-width: 400px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      padding: 32px;
+    }
+    
+    .login-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    
+    .login-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1D2129;
+      line-height: 32px;
+    }
+    
+    .login-subtitle {
+      font-size: 14px;
+      color: #86909C;
+      margin-top: 4px;
+    }
+    
+    .form-group {
+      margin-bottom: 24px;
+    }
+    
+    .form-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #1D2129;
+      margin-bottom: 8px;
+    }
+    
+    .form-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #E5E6EB;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #1D2129;
+      background: white;
+      transition: all 0.2s;
+    }
+    
+    .form-input:focus {
+      outline: none;
+      border-color: #00B578;
+      box-shadow: 0 0 0 3px rgba(0, 181, 120, 0.1);
+    }
+    
+    .form-input::placeholder {
+      color: #86909C;
+    }
+    
+    .form-options {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+    
+    .remember-me {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #1D2129;
+      cursor: pointer;
+    }
+    
+    .remember-me input {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+    
+    .forgot-password {
+      color: #00B578;
+      text-decoration: none;
+    }
+    
+    .forgot-password:hover {
+      text-decoration: underline;
+    }
+    
+    .login-button {
+      width: 100%;
+      padding: 12px;
+      background: #00B578;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .login-button:hover {
+      background: #009A63;
+    }
+    
+    .login-button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+    
+    .demo-button {
+      width: 100%;
+      padding: 10px;
+      background: white;
+      color: #00B578;
+      border: 1px solid #00B578;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 24px;
+      transition: all 0.2s;
+    }
+    
+    .demo-button:hover {
+      background: rgba(0, 181, 120, 0.05);
+    }
+    
+    .demo-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .register-link {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 14px;
+      color: #86909C;
+    }
+    
+    .register-link a {
+      color: #00B578;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    
+    .register-link a:hover {
+      text-decoration: underline;
+    }
+    
+    .error-message {
+      background: rgba(255, 77, 79, 0.1);
+      border: 1px solid rgba(255, 77, 79, 0.3);
+      color: #FF4D4F;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      display: none;
+    }
+    
+    .success-message {
+      background: rgba(0, 181, 120, 0.1);
+      border: 1px solid rgba(0, 181, 120, 0.3);
+      color: #00B578;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      display: none;
+    }
+    
+    .loading-spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .status-info {
+      background: rgba(0, 113, 235, 0.1);
+      border: 1px solid rgba(0, 113, 235, 0.3);
+      color: #0071EB;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-header">
+      <h1 class="login-title">欢迎回来</h1>
+      <p class="login-subtitle">登录你的设计师账号</p>
+    </div>
+    
+    <div class="status-info">
+      ✅ <strong>简化版登录页面</strong><br>
+      绕过API直接跳转，用于测试页面显示问题
+    </div>
+    
+    <div id="errorMessage" class="error-message"></div>
+    <div id="successMessage" class="success-message"></div>
+    
+    <form id="loginForm">
+      <div class="form-group">
+        <label class="form-label">邮箱</label>
+        <input type="email" id="email" class="form-input" placeholder="请输入邮箱" value="designer@test.com" required>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">密码</label>
+        <input type="password" id="password" class="form-input" placeholder="请输入密码" value="123456" required>
+      </div>
+      
+      <div class="form-options">
+        <label class="remember-me">
+          <input type="checkbox"> 记住我
+        </label>
+        <a href="#" class="forgot-password">忘记密码？</a>
+      </div>
+      
+      <button type="submit" id="loginButton" class="login-button">
+        登录
+      </button>
+    </form>
+    
+    <button id="demoButton" class="demo-button">
+      演示账号登录（designer@test.com）
+    </button>
+    
+    <p class="register-link">
+      还没有账号？<a href="/register">立即注册</a>
+    </p>
+    
+    <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #E5E6EB;">
+      <p style="font-size: 12px; color: #86909C; text-align: center;">
+        测试链接：
+        <a href="dashboard-simple.html" style="color: #00B578;">仪表盘</a> |
+        <a href="services-simple.html" style="color: #00B578;">服务管理</a> |
+        <a href="test-simple.html" style="color: #00B578;">简单测试</a>
+      </p>
+    </div>
+  </div>
+  
+  <script>
+    // 元素引用
+    const loginForm = document.getElementById('loginForm')
+    const emailInput = document.getElementById('email')
+    const passwordInput = document.getElementById('password')
+    const loginButton = document.getElementById('loginButton')
+    const demoButton = document.getElementById('demoButton')
+    const errorMessage = document.getElementById('errorMessage')
+    const successMessage = document.getElementById('successMessage')
+    
+    let isLoading = false
+    
+    // 显示错误消息
+    function showError(message) {
+      errorMessage.textContent = message
+      errorMessage.style.display = 'block'
+      successMessage.style.display = 'none'
+    }
+    
+    // 显示成功消息
+    function showSuccess(message) {
+      successMessage.textContent = message
+      successMessage.style.display = 'block'
+      errorMessage.style.display = 'none'
+    }
+    
+    // 隐藏所有消息
+    function hideMessages() {
+      errorMessage.style.display = 'none'
+      successMessage.style.display = 'none'
+    }
+    
+    // 设置加载状态
+    function setLoading(loading) {
+      isLoading = loading
+      loginButton.disabled = loading
+      demoButton.disabled = loading
+      
+      if (loading) {
+        loginButton.innerHTML = '<span class="loading-spinner"></span>登录中...'
+        demoButton.textContent = '登录中...'
+      } else {
+        loginButton.innerHTML = '登录'
+        demoButton.textContent = '演示账号登录（designer@test.com）'
+      }
+    }
+    
+    // 简化版登录 - 直接跳转，不调用API
+    function performSimpleLogin(email, password) {
+      if (isLoading) return
+      
+      hideMessages()
+      setLoading(true)
+      
+      // 模拟API调用延迟
+      setTimeout(() => {
+        // 简单的验证
+        if (email === 'designer@test.com' && password === '123456') {
+          showSuccess('✅ 登录成功！正在跳转到仪表盘...')
+          
+          // 设置一个简单的session标记
+          localStorage.setItem('user_logged_in', 'true')
+          localStorage.setItem('user_email', email)
+          localStorage.setItem('user_role', 'designer')
+          
+          // 2秒后跳转
+          setTimeout(() => {
+            window.location.href = 'dashboard-simple.html'
+          }, 2000)
+        } else if (email === 'client@test.com' && password === '123456') {
+          showSuccess('✅ 登录成功！正在跳转到仪表盘...')
+          
+          // 设置一个简单的session标记
+          localStorage.setItem('user_logged_in', 'true')
+          localStorage.setItem('user_email', email)
+          localStorage.setItem('user_role', 'client')
+          
+          // 2秒后跳转
+          setTimeout(() => {
+            window.location.href = 'dashboard-simple.html'
+          }, 2000)
+        } else {
+          showError('❌ 登录失败：邮箱或密码错误')
+          setLoading(false)
+        }
+      }, 1000)
+    }
+    
+    // 表单提交
+    loginForm.addEventListener('submit', function(e) {
+      e.preventDefault()
+      const email = emailInput.value.trim()
+      const password = passwordInput.value.trim()
+      
+      if (!email || !password) {
+        showError('请输入邮箱和密码')
+        return
+      }
+      
+      performSimpleLogin(email, password)
+    })
+    
+    // 演示账号登录
+    demoButton.addEventListener('click', function() {
+      emailInput.value = 'designer@test.com'
+      passwordInput.value = '123456'
+      performSimpleLogin('designer@test.com', '123456')
+    })
+    
+    // 页面加载时显示状态
+    window.addEventListener('load', function() {
+      console.log('✅ 简化版登录页面加载完成')
+      console.log('页面URL:', window.location.href)
+      console.log('页面标题:', document.title)
+      console.log('表单元素:', loginForm ? '存在' : '不存在')
+      
+      // 检查是否已登录
+      if (localStorage.getItem('user_logged_in') === 'true') {
+        showSuccess('您已登录，点击下方链接访问其他页面')
+      }
+    })
+    
+    // 自动测试（可选）
+    setTimeout(() => {
+      console.log('页面自动测试：所有元素正常')
+    }, 500)
+  </script>
+</body>
+</html>

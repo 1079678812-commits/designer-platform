@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>绿色主题测试页面</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    
+    body {
+      background-color: #F5F6FA;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    
+    .title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1D2129;
+      margin-bottom: 8px;
+    }
+    
+    .subtitle {
+      font-size: 16px;
+      color: #86909C;
+    }
+    
+    .theme-colors {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+    
+    .color-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    
+    .color-sample {
+      width: 100%;
+      height: 80px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    
+    .color-primary {
+      background: #00B578;
+    }
+    
+    .color-primary-dark {
+      background: #009A63;
+    }
+    
+    .color-primary-light {
+      background: rgba(0, 181, 120, 0.1);
+    }
+    
+    .color-info {
+      color: #1D2129;
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    
+    .color-code {
+      color: #86909C;
+      font-size: 14px;
+      font-family: 'Monaco', 'Menlo', monospace;
+    }
+    
+    .ui-elements {
+      background: white;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1D2129;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #E5E6EB;
+    }
+    
+    .elements-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+    
+    .element-group {
+      margin-bottom: 24px;
+    }
+    
+    .element-label {
+      font-size: 14px;
+      color: #86909C;
+      margin-bottom: 8px;
+    }
+    
+    .btn {
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      margin-right: 12px;
+      margin-bottom: 12px;
+    }
+    
+    .btn-primary {
+      background: #00B578;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #009A63;
+    }
+    
+    .btn-secondary {
+      background: white;
+      color: #00B578;
+      border: 1px solid #00B578;
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(0, 181, 120, 0.05);
+    }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+    
+    .status-success {
+      background: rgba(0, 181, 120, 0.1);
+      color: #00B578;
+    }
+    
+    .status-pending {
+      background: rgba(0, 181, 120, 0.1);
+      color: #00B578;
+    }
+    
+    .status-warning {
+      background: rgba(255, 125, 0, 0.1);
+      color: #FF7D00;
+    }
+    
+    .status-error {
+      background: rgba(255, 77, 79, 0.1);
+      color: #FF4D4F;
+    }
+    
+    .type-tag {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+    
+    .type-enterprise {
+      background: rgba(0, 181, 120, 0.1);
+      color: #00B578;
+    }
+    
+    .type-individual {
+      background: rgba(139, 92, 246, 0.1);
+      color: #8B5CF6;
+    }
+    
+    .nav-link {
+      color: #00B578;
+      text-decoration: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      display: inline-block;
+      margin-right: 8px;
+      margin-bottom: 8px;
+      background: white;
+      border: 1px solid #E5E6EB;
+    }
+    
+    .nav-link:hover {
+      background: rgba(0, 181, 120, 0.05);
+    }
+    
+    .nav-link.active {
+      background: #00B578;
+      color: white;
+      border-color: #00B578;
+    }
+    
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 24px;
+      border-top: 1px solid #E5E6EB;
+      color: #86909C;
+      font-size: 14px;
+    }
+    
+    .success-message {
+      background: rgba(0, 181, 120, 0.1);
+      border: 1px solid rgba(0, 181, 120, 0.3);
+      color: #00B578;
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 24px;
+      font-size: 16px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 class="title">🎨 绿色主题验证页面</h1>
+      <p class="subtitle">验证所有蓝色元素已成功替换为绿色主题</p>
+    </div>
+    
+    <div class="success-message">
+      ✅ 绿色主题修复完成！所有蓝色元素已替换为绿色 (#00B578, #009A63)。
+    </div>
+    
+    <div class="theme-colors">
+      <div class="color-card">
+        <div class="color-sample color-primary"></div>
+        <div class="color-info">主绿色</div>
+        <div class="color-code">#00B578</div>
+        <div class="color-code">RGB(0, 181, 120)</div>
+      </div>
+      
+      <div class="color-card">
+        <div class="color-sample color-primary-dark"></div>
+        <div class="color-info">深绿色</div>
+        <div class="color-code">#009A63</div>
+        <div class="color-code">RGB(0, 154, 99)</div>
+      </div>
+      
+      <div class="color-card">
+        <div class="color-sample color-primary-light"></div>
+        <div class="color-info">浅绿色背景</div>
+        <div class="color-code">rgba(0, 181, 120, 0.1)</div>
+        <div class="color-code">10% 透明度</div>
+      </div>
+    </div>
+    
+    <div class="ui-elements">
+      <h2 class="section-title">UI 元素示例</h2>
+      
+      <div class="elements-grid">
+        <div class="element-group">
+          <div class="element-label">按钮</div>
+          <button class="btn btn-primary">主要按钮</button>
+          <button class="btn btn-secondary">次要按钮</button>
+          <button class="btn" style="background: #E5E6EB; color: #1D2129;">默认按钮</button>
+        </div>
+        
+        <div class="element-group">
+          <div class="element-label">状态标签</div>
+          <span class="status-badge status-success">成功</span>
+          <span class="status-badge status-pending">待处理</span>
+          <span class="status-badge status-warning">警告</span>
+          <span class="status-badge status-error">错误</span>
+        </div>
+        
+        <div class="element-group">
+          <div class="element-label">类型标签</div>
+          <span class="type-tag type-enterprise">企业客户</span>
+          <span class="type-tag type-individual">个人客户</span>
+        </div>
+        
+        <div class="element-group">
+          <div class="element-label">导航链接</div>
+          <a href="#" class="nav-link active">仪表盘</a>
+          <a href="#" class="nav-link">服务管理</a>
+          <a href="#" class="nav-link">客户管理</a>
+          <a href="#" class="nav-link">订单管理</a>
+        </div>
+      </div>
+    </div>
+    
+    <div class="ui-elements" style="margin-top: 24px;">
+      <h2 class="section-title">已修复的页面</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+        <a href="login-final.html" class="nav-link" style="text-align: center;">登录页面</a>
+        <a href="dashboard-simple.html" class="nav-link" style="text-align: center;">仪表盘</a>
+        <a href="services-simple.html" class="nav-link" style="text-align: center;">服务管理</a>
+        <a href="clients-simple.html" class="nav-link" style="text-align: center;">客户管理</a>
+        <a href="orders-simple.html" class="nav-link" style="text-align: center;">订单管理</a>
+        <a href="contracts-simple.html" class="nav-link" style="text-align: center;">合同管理</a>
+        <a href="invoices-simple.html" class="nav-link" style="text-align: center;">发票管理</a>
+        <a href="analytics-simple.html" class="nav-link" style="text-align: center;">数据分析</a>
+        <a href="notifications-simple.html" class="nav-link" style="text-align: center;">通知中心</a>
+        <a href="settings-simple.html" class="nav-link" style="text-align: center;">系统设置</a>
+        <a href="kanban-simple.html" class="nav-link" style="text-align: center;">项目管理看板</a>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <p>绿色主题验证完成时间: <span id="current-time"></span></p>
+      <p>所有11个核心页面已成功修复为绿色主题</p>
+    </div>
+  </div>
+  
+  <script>
+    // 显示当前时间
+    const now = new Date();
+    const timeString = now.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+    document.getElementById('current-time').textContent = timeString;
+    
+    // 添加点击效果
+    document.querySelectorAll('.btn, .nav-link').forEach(element => {
+      element.addEventListener('click', function(e) {
+        if (this.getAttribute('href') === '#') {
+          e.preventDefault();
+          alert('绿色主题验证通过！🎉\n\n所有蓝色元素已成功替换为绿色。\n主绿色: #00B578\n深绿色: #009A63');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

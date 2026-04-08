@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>客户管理 - 设计师接单平台</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { background: #F5F6FA; min-height: 100vh; }
+    
+    .container { max-width: 1200px; }
+    
+    .header { text-align: center; margin-bottom: 30px; padding: 20px; }
+    .title { font-size: 28px; font-weight: 700; color: #1D2129; margin-bottom: 8px; }
+    .subtitle { font-size: 16px; color: #86909C; }
+    
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 30px; }
+    .stat-card { background: white; border: 1px solid #E5E6EB; border-radius: 12px; padding: 20px; text-align: center; }
+    .stat-label { font-size: 14px; color: #86909C; margin-bottom: 8px; }
+    .stat-value { font-size: 24px; font-weight: 700; color: #00B578; }
+    
+    .controls { background: white; border: 1px solid #E5E6EB; border-radius: 12px; padding: 20px; margin-bottom: 30px; display: flex; gap: 16px; flex-wrap: wrap; }
+    .search-input { flex: 1; min-width: 200px; padding: 12px 16px; border: 1px solid #E5E6EB; border-radius: 8px; font-size: 14px; }
+    .filter-select { padding: 12px 16px; border: 1px solid #E5E6EB; border-radius: 8px; font-size: 14px; min-width: 120px; }
+    .add-btn { background: #00B578; color: white; border: none; border-radius: 8px; padding: 12px 20px; font-size: 14px; font-weight: 500; cursor: pointer; }
+    
+    .clients-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+    .client-card { background: white; border: 1px solid #E5E6EB; border-radius: 12px; padding: 20px; }
+    .client-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .client-name { font-size: 16px; font-weight: 600; color: #1D2129; }
+    .client-type { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 500; }
+    .type-enterprise { background: rgba(0, 181, 120, 0.1); color: #00B578; }
+    .type-individual { background: rgba(0, 181, 120, 0.1); color: #00B578; }
+    
+    .client-info { color: #86909C; font-size: 14px; line-height: 1.5; margin-bottom: 16px; }
+    .client-contact { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .contact-item { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #1D2129; }
+    
+    .client-footer { display: flex; justify-content: space-between; align-items: center; }
+    .client-stats { color: #86909C; font-size: 12px; }
+    .client-actions { display: flex; gap: 8px; }
+    .action-btn { background: none; border: 1px solid #E5E6EB; border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer; color: #1D2129; }
+    .action-btn:hover { background: #F5F6FA; }
+    
+    .loading { text-align: center; padding: 60px; }
+    .spinner { width: 48px; height: 48px; border: 4px solid #E5E6EB; border-top-color: #00B578; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    .error { background: #FFF2F0; border: 1px solid #FFCCC7; color: #FF4D4F; padding: 16px; border-radius: 8px; margin-bottom: 20px; }
+    
+    
+    .nav-link { color: #00B578; text-decoration: none; padding: 8px 16px; border-radius: 8px; }
+    .nav-link:hover { background: rgba(0, 181, 120, 0.1); }
+    
+    @media (max-width: 768px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .clients-grid { grid-template-columns: 1fr; }
+      .controls { flex-direction: column; }
+    }
+      /* 左侧导航 */
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 240px;
+      height: 100vh;
+      background: white;
+      border-right: 1px solid #E5E6EB;
+      padding: 20px;
+      overflow-y: auto;
+      z-index: 1000;
+    }
+    
+    .sidebar-header {
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #E5E6EB;
+    }
+    
+    .sidebar-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1D2129;
+      margin-bottom: 4px;
+    }
+    
+    .sidebar-subtitle {
+      font-size: 12px;
+      color: #86909C;
+    }
+    
+    .nav-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      color: #1D2129;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    
+    .nav-link:hover {
+      background: #F5F6FA;
+      color: #00B578;
+    }
+    
+    .nav-link.active {
+      background: rgba(0, 181, 120, 0.1);
+      color: #00B578;
+      font-weight: 500;
+    }
+    
+    .nav-icon {
+      font-size: 18px;
+      width: 24px;
+      text-align: center;
+    }
+    
+    .nav-text {
+      font-size: 14px;
+    }
+    
+    /* 主内容区域 */
+    .main-content {
+      margin-left: 240px;
+      padding: 20px;
+    }
+    
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 200px;
+        transform: translateX(-100%);
+        transition: transform 0.3s;
+      }
+      
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      
+      .main-content {
+        margin-left: 0;
+      }
+      
+      .mobile-menu-btn {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 1001;
+        background: white;
+        border: 1px solid #E5E6EB;
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+    }
+  </style>
+</head>
+<body>
+    <!-- 左侧导航 -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">设计师平台</div>
+        <div class="sidebar-subtitle">管理您的设计业务</div>
+      </div>
+      
+      <div class="nav-menu">
+        <a href="/dashboard-simple.html" class="nav-link ">
+          <div class="nav-icon">📊</div>
+          <div class="nav-text">仪表盘</div>
+        </a>
+        <a href="/services-simple.html" class="nav-link ">
+          <div class="nav-icon">🛠️</div>
+          <div class="nav-text">服务管理</div>
+        </a>
+        <a href="/clients-simple.html" class="nav-link active">
+          <div class="nav-icon">👥</div>
+          <div class="nav-text">客户管理</div>
+        </a>
+        <a href="/orders-simple.html" class="nav-link ">
+          <div class="nav-icon">📦</div>
+          <div class="nav-text">订单管理</div>
+        </a>
+        <a href="/contracts-simple.html" class="nav-link ">
+          <div class="nav-icon">📝</div>
+          <div class="nav-text">合同管理</div>
+        </a>
+        <a href="/invoices-simple.html" class="nav-link ">
+          <div class="nav-icon">🧾</div>
+          <div class="nav-text">发票管理</div>
+        </a>
+        <a href="/analytics-simple.html" class="nav-link ">
+          <div class="nav-icon">📈</div>
+          <div class="nav-text">数据分析</div>
+        </a>
+        <a href="/notifications-simple.html" class="nav-link ">
+          <div class="nav-icon">🔔</div>
+          <div class="nav-text">通知中心</div>
+        </a>
+        <a href="/settings-simple.html" class="nav-link ">
+          <div class="nav-icon">⚙️</div>
+          <div class="nav-text">系统设置</div>
+        </a>
+        <a href="/kanban-simple.html" class="nav-link ">
+          <div class="nav-icon">📋</div>
+          <div class="nav-text">项目管理</div>
+        </a>
+      </div>
+    </div>
+    
+    <!-- 移动端菜单按钮 -->
+    <button class="mobile-menu-btn" id="mobileMenuBtn" style="display: none;">☰</button>
+    
+    <!-- 主内容 -->
+    <div class="main-content">
+    <div class="container">
+    <!-- 标题 -->
+    <div class="header">
+      <h1 class="title">客户管理</h1>
+      <p class="subtitle">管理客户信息和联系方式</p>
+    </div>
+    
+    <!-- 错误消息 -->
+    <div id="errorMessage" class="error" style="display: none;"></div>
+    
+    <!-- 统计 -->
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">总客户数</div>
+        <div class="stat-value" id="totalClients">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">企业客户</div>
+        <div class="stat-value" id="enterpriseClients">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">个人客户</div>
+        <div class="stat-value" id="individualClients">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">总消费额</div>
+        <div class="stat-value">¥<span id="totalSpent">0</span></div>
+      </div>
+    </div>
+    
+    <!-- 控制栏 -->
+    <div class="controls">
+      <input type="text" class="search-input" id="searchInput" placeholder="搜索客户名称或联系方式...">
+      <select class="filter-select" id="typeFilter">
+        <option value="">所有类型</option>
+        <option value="enterprise">企业客户</option>
+        <option value="individual">个人客户</option>
+      </select>
+      <button class="add-btn" onclick="addNewClient()">+ 添加客户</button>
+    </div>
+    
+    <!-- 加载状态 -->
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <div>加载客户数据...</div>
+    </div>
+    
+    <!-- 客户列表 -->
+    <div id="clientsContainer" class="clients-grid" style="display: none;">
+      <!-- 客户卡片将通过JavaScript动态生成 -->
+    </div>
+  </div>
+
+  <script>
+    // 全局变量
+    let allClients = [];
+    
+    // 页面加载时初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      loadClients();
+      
+      // 绑定搜索和筛选事件
+      document.getElementById('searchInput').addEventListener('input', filterClients);
+      document.getElementById('typeFilter').addEventListener('change', filterClients);
+    });
+    
+    // 加载客户数据
+    async function loadClients() {
+      try {
+        showLoading(true);
+        
+        // 模拟数据（当API不可用时）
+        const useMockData = localStorage.getItem('useMockData') === 'true' || window.location.search.includes('mock=true');
+        if (useMockData) {
+          console.log('使用模拟数据');
+          allClients = getMockClients();
+          updateStats(allClients);
+          renderClients(allClients);
+          showLoading(false);
+          return;
+        }
+        
+        // 实际项目中这里会调用API
+        // const response = await fetch('/api/clients');
+        // allClients = await response.json();
+        // updateStats(allClients);
+        // renderClients(allClients);
+        
+      } catch (error) {
+        showError('加载客户数据失败: ' + error.message);
+        // 使用模拟数据作为后备
+        allClients = getMockClients();
+        updateStats(allClients);
+        renderClients(allClients);
+      } finally {
+        showLoading(false);
+      }
+    }
+    
+    // 模拟客户数据
+    function getMockClients() {
+      return [
+        {
+          id: '1',
+          name: '张先生',
+          type: 'individual',
+          email: 'zhang@example.com',
+          phone: '13800138001',
+          company: '个人客户',
+          totalSpent: 32000,
+          totalProjects: 3,
+          lastContact: '2026-03-28'
+        },
+        {
+          id: '2',
+          name: '李女士',
+          type: 'enterprise',
+          email: 'li@company.com',
+          phone: '13900139002',
+          company: '科技公司',
+          totalSpent: 24000,
+          totalProjects: 2,
+          lastContact: '2026-03-25'
+        },
+        {
+          id: '3',
+          name: '王先生',
+          type: 'individual',
+          email: 'wang@example.com',
+          phone: '13700137003',
+          company: '个人客户',
+          totalSpent: 15000,
+          totalProjects: 1,
+          lastContact: '2026-03-20'
+        },
+        {
+          id: '4',
+          name: '赵女士',
+          type: 'enterprise',
+          email: 'zhao@enterprise.com',
+          phone: '13600136004',
+          company: '设计工作室',
+          totalSpent: 10000,
+          totalProjects: 1,
+          lastContact: '2026-03-15'
+        }
+      ];
+    }
+    
+    // 更新统计数据
+    function updateStats(clients) {
+      const totalClients = clients.length;
+      const enterpriseClients = clients.filter(client => client.type === 'enterprise').length;
+      const individualClients = clients.filter(client => client.type === 'individual').length;
+      const totalSpent = clients.reduce((sum, client) => sum + (client.totalSpent || 0), 0);
+      
+      document.getElementById('totalClients').textContent = totalClients;
+      document.getElementById('enterpriseClients').textContent = enterpriseClients;
+      document.getElementById('individualClients').textContent = individualClients;
+      document.getElementById('totalSpent').textContent = totalSpent.toLocaleString();
+    }
+    
+    // 渲染客户列表
+    function renderClients(clients) {
+      const container = document.getElementById('clientsContainer');
+      
+      if (!clients || clients.length === 0) {
+        container.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #86909C;">暂无客户数据</div>';
+        container.style.display = 'grid';
+        return;
+      }
+      
+      let html = '';
+      
+      clients.forEach(client => {
+        const typeClass = client.type === 'enterprise' ? 'type-enterprise' : 'type-individual';
+        const typeText = client.type === 'enterprise' ? '企业客户' : '个人客户';
+        
+        html += `
+          <div class="client-card">
+            <div class="client-header">
+              <div class="client-name">${escapeHtml(client.name)}</div>
+              <div class="client-type ${typeClass}">${typeText}</div>
+            </div>
+            
+            <div class="client-info">
+              ${escapeHtml(client.company || '')}
+            </div>
+            
+            <div class="client-contact">
+              <div class="contact-item">
+                <span>📧</span>
+                <span>${escapeHtml(client.email || '未设置')}</span>
+              </div>
+              <div class="contact-item">
+                <span>📱</span>
+                <span>${escapeHtml(client.phone || '未设置')}</span>
+              </div>
+            </div>
+            
+            <div class="client-footer">
+              <div class="client-stats">
+                消费 ¥${(client.totalSpent || 0).toLocaleString()} • ${client.totalProjects || 0}个项目
+              </div>
+              <div class="client-actions">
+                <button class="action-btn" onclick="editClient('${client.id}')">编辑</button>
+                <button class="action-btn" onclick="contactClient('${client.id}')">联系</button>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      
+      container.innerHTML = html;
+      container.style.display = 'grid';
+    }
+    
+    // 筛选客户
+    function filterClients() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const type = document.getElementById('typeFilter').value;
+      
+      const filtered = allClients.filter(client => {
+        const matchesSearch = !search || 
+          client.name.toLowerCase().includes(search) ||
+          client.email.toLowerCase().includes(search) ||
+          client.phone.includes(search) ||
+          (client.company && client.company.toLowerCase().includes(search));
+        
+        const matchesType = !type || client.type === type;
+        
+        return matchesSearch && matchesType;
+      });
+      
+      updateStats(filtered);
+      renderClients(filtered);
+    }
+    
+    // 添加新客户
+    function addNewClient() {
+      alert('跳转到添加客户页面');
+      // 实际项目中这里会打开客户创建表单
+    }
+    
+    // 编辑客户
+    function editClient(clientId) {
+      alert(`编辑客户 ID: ${clientId}`);
+      // 实际项目中这里会打开编辑表单
+    }
+    
+    // 联系客户
+    function contactClient(clientId) {
+      const client = allClients.find(c => c.id === clientId);
+      if (client) {
+        const message = prompt(`给 ${client.name} 发送消息:`);
+        if (message) {
+          alert(`消息已发送给 ${client.name}: "${message}"`);
+        }
+      }
+    }
+    
+    // 工具函数
+    function showLoading(show) {
+      document.getElementById('loading').style.display = show ? 'block' : 'none';
+      document.getElementById('clientsContainer').style.display = show ? 'none' : 'grid';
+    }
+    
+    function showError(message) {
+      const errorDiv = document.getElementById('errorMessage');
+      errorDiv.textContent = message;
+      errorDiv.style.display = 'block';
+      setTimeout(() => {
+        errorDiv.style.display = 'none';
+      }, 5000);
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  </script>
+  <script>
+    // 移动端菜单切换
+    document.addEventListener('DOMContentLoaded', () => {
+      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+      const sidebar = document.getElementById('sidebar');
+      
+      if (mobileMenuBtn && sidebar) {
+        // 检查是否为移动端
+        const isMobile = window.innerWidth <= 768;
+        if (isMobile) {
+          mobileMenuBtn.style.display = 'block';
+          
+          mobileMenuBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+          });
+          
+          // 点击内容区域关闭菜单
+          document.querySelector('.main-content').addEventListener('click', () => {
+            if (sidebar.classList.contains('open')) {
+              sidebar.classList.remove('open');
+            }
+          });
+        }
+      }
+      
+      // 设置当前页面激活状态
+      const currentPage = window.location.pathname.split('/').pop() || 'dashboard-simple.html';
+      const navLinks = document.querySelectorAll('.nav-link');
+      
+      navLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && href.includes(currentPage)) {
+          link.classList.add('active');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

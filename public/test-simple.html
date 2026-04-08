@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>简单测试页面</title>
+  <style>
+    body {
+      background: #00B578;
+      color: white;
+      font-family: Arial, sans-serif;
+      padding: 40px;
+      text-align: center;
+    }
+    h1 {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+    p {
+      font-size: 24px;
+      margin-bottom: 30px;
+    }
+    .status {
+      background: white;
+      color: #00B578;
+      padding: 20px;
+      border-radius: 10px;
+      font-size: 18px;
+      margin: 20px auto;
+      max-width: 600px;
+    }
+  </style>
+</head>
+<body>
+  <h1>✅ 测试页面正常</h1>
+  <p>如果看到这个页面，说明服务器工作正常</p>
+  
+  <div class="status">
+    <h3>服务器状态：运行中</h3>
+    <p>时间：<span id="time"></span></p>
+    <p>URL：<span id="url"></span></p>
+    <p>页面大小：<span id="size"></span> 字节</p>
+  </div>
+  
+  <div style="margin-top: 40px;">
+    <a href="login-final.html" style="color: white; font-size: 20px; text-decoration: underline;">点击这里测试登录页面</a>
+  </div>
+  
+  <script>
+    document.getElementById('time').textContent = new Date().toLocaleString();
+    document.getElementById('url').textContent = window.location.href;
+    document.getElementById('size').textContent = document.documentElement.outerHTML.length;
+    
+    // 测试API
+    fetch('/api/data?type=test')
+      .then(response => {
+        document.body.innerHTML += `<div class="status">API测试：${response.status} ${response.statusText}</div>`;
+      })
+      .catch(error => {
+        document.body.innerHTML += `<div class="status" style="background: #FF4D4F; color: white;">API错误：${error.message}</div>`;
+      });
+  </script>
+</body>
+</html>

@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>合同管理 - 设计师接单平台</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { background: #F5F6FA; min-height: 100vh; }
+    
+    .container { max-width: 1200px; }
+    
+    .header { text-align: center; margin-bottom: 30px; padding: 20px; }
+    .title { font-size: 28px; font-weight: 700; color: #1D2129; margin-bottom: 8px; }
+    .subtitle { font-size: 16px; color: #86909C; }
+    
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 30px; }
+    .stat-card { background: white; border: 1px solid #E5E6EB; border-radius: 12px; padding: 20px; text-align: center; }
+    .stat-label { font-size: 14px; color: #86909C; margin-bottom: 8px; }
+    .stat-value { font-size: 24px; font-weight: 700; color: #00B578; }
+    
+    .controls { background: white; border: 1px solid #E5E6EB; border-radius: 12px; padding: 20px; margin-bottom: 30px; display: flex; gap: 16px; flex-wrap: wrap; }
+    .search-input { flex: 1; min-width: 200px; padding: 12px 16px; border: 1px solid #E5E6EB; border-radius: 8px; font-size: 14px; }
+    .filter-select { padding: 12px 16px; border: 1px solid #E5E6EB; border-radius: 8px; font-size: 14px; min-width: 120px; }
+    .add-btn { background: #00B578; color: white; border: none; border-radius: 8px; padding: 12px 20px; font-size: 14px; font-weight: 500; cursor: pointer; }
+    
+    .contracts-table { background: white; border: 1px solid #E5E6EB; border-radius: 12px; overflow: hidden; }
+    .table-header { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 0.5fr; background: #F5F6FA; padding: 16px 20px; border-bottom: 1px solid #E5E6EB; font-weight: 600; color: #1D2129; }
+    .table-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 0.5fr; padding: 16px 20px; border-bottom: 1px solid #E5E6EB; align-items: center; }
+    .table-row:hover { background: #F5F6FA; }
+    
+    .contract-name { font-weight: 600; color: #1D2129; }
+    .contract-client { color: #1D2129; }
+    .contract-amount { font-weight: 600; color: #1D2129; }
+    .contract-date { color: #86909C; font-size: 14px; }
+    
+    .status-badge { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 500; text-align: center; }
+    .status-draft { background: rgba(255, 125, 0, 0.1); color: #FF7D00; }
+    .status-pending { background: rgba(0, 181, 120, 0.1); color: #00B578; }
+    .status-signed { background: rgba(0, 181, 120, 0.1); color: #00B578; }
+    .status-expired { background: rgba(255, 77, 79, 0.1); color: #FF4D4F; }
+    
+    .action-btn { background: none; border: 1px solid #E5E6EB; border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer; color: #1D2129; }
+    .action-btn:hover { background: #F5F6FA; }
+    
+    .loading { text-align: center; padding: 60px; }
+    .spinner { width: 48px; height: 48px; border: 4px solid #E5E6EB; border-top-color: #00B578; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    .error { background: #FFF2F0; border: 1px solid #FFCCC7; color: #FF4D4F; padding: 16px; border-radius: 8px; margin-bottom: 20px; }
+    
+    
+    .nav-link { color: #00B578; text-decoration: none; padding: 8px 16px; border-radius: 8px; }
+    .nav-link:hover { background: rgba(0, 181, 120, 0.1); }
+    
+    .pagination { display: flex; justify-content: center; gap: 8px; margin-top: 30px; }
+    .page-btn { padding: 8px 12px; border: 1px solid #E5E6EB; border-radius: 6px; background: white; cursor: pointer; }
+    .page-btn.active { background: #00B578; color: white; border-color: #00B578; }
+    
+    @media (max-width: 768px) {
+      .table-header, .table-row { grid-template-columns: 1fr; gap: 8px; }
+      .controls { flex-direction: column; }
+    }
+      /* 左侧导航 */
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 240px;
+      height: 100vh;
+      background: white;
+      border-right: 1px solid #E5E6EB;
+      padding: 20px;
+      overflow-y: auto;
+      z-index: 1000;
+    }
+    
+    .sidebar-header {
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #E5E6EB;
+    }
+    
+    .sidebar-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1D2129;
+      margin-bottom: 4px;
+    }
+    
+    .sidebar-subtitle {
+      font-size: 12px;
+      color: #86909C;
+    }
+    
+    .nav-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      color: #1D2129;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    
+    .nav-link:hover {
+      background: #F5F6FA;
+      color: #00B578;
+    }
+    
+    .nav-link.active {
+      background: rgba(0, 181, 120, 0.1);
+      color: #00B578;
+      font-weight: 500;
+    }
+    
+    .nav-icon {
+      font-size: 18px;
+      width: 24px;
+      text-align: center;
+    }
+    
+    .nav-text {
+      font-size: 14px;
+    }
+    
+    /* 主内容区域 */
+    .main-content {
+      margin-left: 240px;
+      padding: 20px;
+    }
+    
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 200px;
+        transform: translateX(-100%);
+        transition: transform 0.3s;
+      }
+      
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      
+      .main-content {
+        margin-left: 0;
+      }
+      
+      .mobile-menu-btn {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 1001;
+        background: white;
+        border: 1px solid #E5E6EB;
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+    }
+  </style>
+</head>
+<body>
+    <!-- 左侧导航 -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">设计师平台</div>
+        <div class="sidebar-subtitle">管理您的设计业务</div>
+      </div>
+      
+      <div class="nav-menu">
+        <a href="/dashboard-simple.html" class="nav-link ">
+          <div class="nav-icon">📊</div>
+          <div class="nav-text">仪表盘</div>
+        </a>
+        <a href="/services-simple.html" class="nav-link ">
+          <div class="nav-icon">🛠️</div>
+          <div class="nav-text">服务管理</div>
+        </a>
+        <a href="/clients-simple.html" class="nav-link ">
+          <div class="nav-icon">👥</div>
+          <div class="nav-text">客户管理</div>
+        </a>
+        <a href="/orders-simple.html" class="nav-link ">
+          <div class="nav-icon">📦</div>
+          <div class="nav-text">订单管理</div>
+        </a>
+        <a href="/contracts-simple.html" class="nav-link active">
+          <div class="nav-icon">📝</div>
+          <div class="nav-text">合同管理</div>
+        </a>
+        <a href="/invoices-simple.html" class="nav-link ">
+          <div class="nav-icon">🧾</div>
+          <div class="nav-text">发票管理</div>
+        </a>
+        <a href="/analytics-simple.html" class="nav-link ">
+          <div class="nav-icon">📈</div>
+          <div class="nav-text">数据分析</div>
+        </a>
+        <a href="/notifications-simple.html" class="nav-link ">
+          <div class="nav-icon">🔔</div>
+          <div class="nav-text">通知中心</div>
+        </a>
+        <a href="/settings-simple.html" class="nav-link ">
+          <div class="nav-icon">⚙️</div>
+          <div class="nav-text">系统设置</div>
+        </a>
+        <a href="/kanban-simple.html" class="nav-link ">
+          <div class="nav-icon">📋</div>
+          <div class="nav-text">项目管理</div>
+        </a>
+      </div>
+    </div>
+    
+    <!-- 移动端菜单按钮 -->
+    <button class="mobile-menu-btn" id="mobileMenuBtn" style="display: none;">☰</button>
+    
+    <!-- 主内容 -->
+    <div class="main-content">
+    <div class="container">
+    <!-- 标题 -->
+    <div class="header">
+      <h1 class="title">合同管理</h1>
+      <p class="subtitle">管理您的设计服务合同</p>
+    </div>
+    
+    <!-- 统计卡片 -->
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">总合同数</div>
+        <div class="stat-value" id="total-contracts">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">待签署</div>
+        <div class="stat-value" id="pending-contracts">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">已签署</div>
+        <div class="stat-value" id="signed-contracts">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">总金额</div>
+        <div class="stat-value" id="total-amount">¥0</div>
+      </div>
+    </div>
+    
+    <!-- 控制栏 -->
+    <div class="controls">
+      <input type="text" class="search-input" placeholder="搜索合同名称或客户..." id="search-input">
+      <select class="filter-select" id="status-filter">
+        <option value="">所有状态</option>
+        <option value="draft">草稿</option>
+        <option value="pending">待签署</option>
+        <option value="signed">已签署</option>
+        <option value="expired">已过期</option>
+      </select>
+      <select class="filter-select" id="client-filter">
+        <option value="">所有客户</option>
+      </select>
+      <button class="add-btn" onclick="createNewContract()">+ 新建合同</button>
+    </div>
+    
+    <!-- 错误提示 -->
+    <div class="error" id="error-message" style="display: none;"></div>
+    
+    <!-- 加载中 -->
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>加载合同数据...</p>
+    </div>
+    
+    <!-- 合同表格 -->
+    <div class="contracts-table" id="contracts-table" style="display: none;">
+      <div class="table-header">
+        <div>合同名称</div>
+        <div>客户</div>
+        <div>金额</div>
+        <div>创建日期</div>
+        <div>状态</div>
+        <div>操作</div>
+      </div>
+      <div id="contracts-list"></div>
+    </div>
+    
+    <!-- 分页 -->
+    <div class="pagination" id="pagination" style="display: none;"></div>
+  </div>
+
+  <script>
+    let contracts = [];
+    let filteredContracts = [];
+    let currentPage = 1;
+    const pageSize = 10;
+    
+    // 检查登录状态
+    async function checkAuth() {
+      try {
+        const response = await fetch('/api/auth/session', {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          window.location.href = 'login-final.html';
+          return null;
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error('认证检查失败:', error);
+        window.location.href = 'login-final.html';
+        return null;
+      }
+    }
+    
+    // 加载合同数据
+    async function loadContracts() {
+      try {
+
+      // 模拟数据（当API不可用时）
+      const useMockData = localStorage.getItem('useMockData') === 'true' || window.location.search.includes('mock=true');
+      if (useMockData) {
+        console.log('使用模拟数据');
+        const mockData = getMockContracts();
+        updateStats(mockData);
+        renderContracts(mockData);
+        showLoading(false);
+        return;
+      }
+      
+        const session = await checkAuth();
+        if (!session) return;
+        
+        const response = await fetch('/api/data?type=contracts', {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`加载失败: ${response.status}`);
+        }
+        
+        contracts = await response.json();
+        updateStats();
+        filterContracts();
+        populateClientFilter();
+        
+        // 隐藏加载中，显示表格
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('contracts-table').style.display = 'block';
+        document.getElementById('pagination').style.display = 'flex';
+        
+      } catch (error) {
+        document.getElementById('loading').style.display = 'none';
+        showError('加载合同数据失败: ' + error.message);
+      }
+    }
+    
+    // 更新统计信息
+    function updateStats() {
+      const total = contracts.length;
+      const pending = contracts.filter(c => c.status === 'pending').length;
+      const signed = contracts.filter(c => c.status === 'signed').length;
+      const totalAmount = contracts.reduce((sum, c) => sum + (c.amount || 0), 0);
+      
+      document.getElementById('total-contracts').textContent = total;
+      document.getElementById('pending-contracts').textContent = pending;
+      document.getElementById('signed-contracts').textContent = signed;
+      document.getElementById('total-amount').textContent = '¥' + totalAmount.toLocaleString();
+    }
+    
+    // 填充客户筛选器
+    function populateClientFilter() {
+      const clientFilter = document.getElementById('client-filter');
+      const clients = [...new Set(contracts.map(c => c.clientName).filter(Boolean))];
+      
+      clients.forEach(client => {
+        const option = document.createElement('option');
+        option.value = client;
+        option.textContent = client;
+        clientFilter.appendChild(option);
+      });
+    }
+    
+    // 筛选合同
+    function filterContracts() {
+      const searchTerm = document.getElementById('search-input').value.toLowerCase();
+      const statusFilter = document.getElementById('status-filter').value;
+      const clientFilter = document.getElementById('client-filter').value;
+      
+      filteredContracts = contracts.filter(contract => {
+        const matchesSearch = !searchTerm || 
+          contract.name.toLowerCase().includes(searchTerm) ||
+          contract.clientName?.toLowerCase().includes(searchTerm);
+        
+        const matchesStatus = !statusFilter || contract.status === statusFilter;
+        const matchesClient = !clientFilter || contract.clientName === clientFilter;
+        
+        return matchesSearch && matchesStatus && matchesClient;
+      });
+      
+      renderContracts();
+      renderPagination();
+    }
+    
+    // 模拟合同数据
+    function getMockContracts() {
+      return [
+        {
+          id: '1',
+          name: '品牌设计合同',
+          client: '张先生',
+          amount: 12000,
+          createdAt: '2026-03-15',
+          status: 'signed'
+        },
+        {
+          id: '2',
+          name: 'UI设计合同',
+          client: '李女士',
+          amount: 8000,
+          createdAt: '2026-03-20',
+          status: 'pending'
+        },
+        {
+          id: '3',
+          name: '网站设计合同',
+          client: '王先生',
+          amount: 15000,
+          createdAt: '2026-03-25',
+          status: 'draft'
+        }
+      ];
+    }
+    
+    // 渲染合同列表
+    function renderContracts() {
+      const startIndex = (currentPage - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const pageContracts = filteredContracts.slice(startIndex, endIndex);
+      
+      const contractsList = document.getElementById('contracts-list');
+      contractsList.innerHTML = '';
+      
+      if (pageContracts.length === 0) {
+        contractsList.innerHTML = `
+          <div class="table-row" style="text-align: center; padding: 40px;">
+            <div style="grid-column: 1 / -1; color: #86909C;">
+              暂无合同数据
+            </div>
+          </div>
+        `;
+        return;
+      }
+      
+      pageContracts.forEach(contract => {
+        const row = document.createElement('div');
+        row.className = 'table-row';
+        
+        const statusClass = `status-${contract.status}`;
+        const statusText = {
+          draft: '草稿',
+          pending: '待签署',
+          signed: '已签署',
+          expired: '已过期'
+        }[contract.status] || contract.status;
+        
+        const formattedDate = new Date(contract.createdAt).toLocaleDateString('zh-CN');
+        const formattedAmount = contract.amount ? '¥' + contract.amount.toLocaleString() : '-';
+        
+        row.innerHTML = `
+          <div class="contract-name">${contract.name}</div>
+          <div class="contract-client">${contract.clientName || '-'}</div>
+          <div class="contract-amount">${formattedAmount}</div>
+          <div class="contract-date">${formattedDate}</div>
+          <div><span class="status-badge ${statusClass}">${statusText}</span></div>
+          <div>
+            <button class="action-btn" onclick="viewContract('${contract.id}')">查看</button>
+          </div>
+        `;
+        
+        contractsList.appendChild(row);
+      });
+    }
+    
+    // 渲染分页
+    function renderPagination() {
+      const totalPages = Math.ceil(filteredContracts.length / pageSize);
+      const pagination = document.getElementById('pagination');
+      pagination.innerHTML = '';
+      
+      if (totalPages <= 1) return;
+      
+      // 上一页按钮
+      const prevBtn = document.createElement('button');
+      prevBtn.className = 'page-btn';
+      prevBtn.textContent = '上一页';
+      prevBtn.disabled = currentPage === 1;
+      prevBtn.onclick = () => {
+        if (currentPage > 1) {
+          currentPage--;
+          renderContracts();
+          renderPagination();
+        }
+      };
+      pagination.appendChild(prevBtn);
+      
+      // 页码按钮
+      for (let i = 1; i <= totalPages; i++) {
+        const pageBtn = document.createElement('button');
+        pageBtn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+        pageBtn.textContent = i;
+        pageBtn.onclick = () => {
+          currentPage = i;
+          renderContracts();
+          renderPagination();
+        };
+        pagination.appendChild(pageBtn);
+      }
+      
+      // 下一页按钮
+      const nextBtn = document.createElement('button');
+      nextBtn.className = 'page-btn';
+      nextBtn.textContent = '下一页';
+      nextBtn.disabled = currentPage === totalPages;
+      nextBtn.onclick = () => {
+        if (currentPage < totalPages) {
+          currentPage++;
+          renderContracts();
+          renderPagination();
+        }
+      };
+      pagination.appendChild(nextBtn);
+    }
+    
+    // 查看合同详情
+    function viewContract(contractId) {
+      alert(`查看合同 ${contractId} - 功能开发中`);
+      // 实际实现中会跳转到合同详情页
+    }
+    
+    // 创建新合同
+    function createNewContract() {
+      alert('创建新合同 - 功能开发中');
+      // 实际实现中会打开合同创建表单
+    }
+    
+    // 显示/隐藏加载状态
+    function showLoading(show) {
+      const loadingDiv = document.getElementById('loading');
+      const contractsTable = document.getElementById('contracts-table');
+      if (loadingDiv) loadingDiv.style.display = show ? 'block' : 'none';
+      if (contractsTable) contractsTable.style.display = show ? 'none' : 'block';
+    }
+    
+    // 显示错误信息
+    function showError(message) {
+      const errorDiv = document.getElementById('error-message');
+      errorDiv.textContent = message;
+      errorDiv.style.display = 'block';
+      setTimeout(() => {
+        errorDiv.style.display = 'none';
+      }, 5000);
+    }
+    
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      loadContracts();
+      
+      // 绑定搜索和筛选事件
+      document.getElementById('search-input').addEventListener('input', filterContracts);
+      document.getElementById('status-filter').addEventListener('change', filterContracts);
+      document.getElementById('client-filter').addEventListener('change', filterContracts);
+    });
+  </script>
+  <script>
+    // 移动端菜单切换
+    document.addEventListener('DOMContentLoaded', () => {
+      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+      const sidebar = document.getElementById('sidebar');
+      
+      if (mobileMenuBtn && sidebar) {
+        // 检查是否为移动端
+        const isMobile = window.innerWidth <= 768;
+        if (isMobile) {
+          mobileMenuBtn.style.display = 'block';
+          
+          mobileMenuBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+          });
+          
+          // 点击内容区域关闭菜单
+          document.querySelector('.main-content').addEventListener('click', () => {
+            if (sidebar.classList.contains('open')) {
+              sidebar.classList.remove('open');
+            }
+          });
+        }
+      }
+      
+      // 设置当前页面激活状态
+      const currentPage = window.location.pathname.split('/').pop() || 'dashboard-simple.html';
+      const navLinks = document.querySelectorAll('.nav-link');
+      
+      navLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && href.includes(currentPage)) {
+          link.classList.add('active');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { withAuth, AuthenticatedRequest } from '@/lib/withAuth'
+
+export const GET = withAuth(async (req: AuthenticatedRequest) => {
+  try {
+    const { searchParams } = new URL(req.url)
+    const status = searchParams.get('status')
+    const where: any = { designerId: req.user.userId }
+    if (status) where.status = status
+
+    const orders = await prisma.order.findMany({
+      where,
+      include: { client: true, service: true },
+      orderBy: { createdAt: 'desc' },
+    })
+    return NextResponse.json({ orders })
+  } catch (err) {
+    console.error(err)
+    return NextResponse.json({ error: '获取订单失败' }, { status: 500 })
+  }
+})
+
+export const POST = withAuth(async (req: AuthenticatedRequest) => {
+  try {
+    const body = await req.json()
+    const { title, description, amount, clientId, serviceId, deadline } = body
+
+    if (!title || amount === undefined) {
+      return NextResponse.json({ error: '缺少必填字段' }, { status: 400 })
+    }
+
+    const orderNo = `ORD${Date.now()}${Math.random().toString(36).slice(2, 6).toUpperCase()}`
+
+    const order = await prisma.order.create({
+      data: {
+        orderNo, title, description, amount: Number(amount),
+        clientId: clientId || null, serviceId: serviceId || null,
+        deadline: deadline ? new Date(deadline) : null,
+        designerId: req.user.userId,
+      },
+    })
+
+    return NextResponse.json({ order }, { status: 201 })
+  } catch (err) {
+    console.error(err)
+    return NextResponse.json({ error: '创建订单失败' }, { status: 500 })
+  }
+})

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>设计师接单平台 - 登录</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    
+    body {
+      background-color: #F5F6FA;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    
+    .login-container {
+      width: 100%;
+      max-width: 400px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      padding: 32px;
+    }
+    
+    .login-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    
+    .login-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1D2129;
+      line-height: 32px;
+    }
+    
+    .login-subtitle {
+      font-size: 14px;
+      color: #86909C;
+      margin-top: 4px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #1D2129;
+      margin-bottom: 6px;
+    }
+    
+    .form-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #E5E6EB;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #1D2129;
+      transition: all 0.2s;
+    }
+    
+    .form-input:focus {
+      outline: none;
+      border-color: #00B578;
+      box-shadow: 0 0 0 3px rgba(0, 181, 120, 0.1);
+    }
+    
+    .form-options {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+    
+    .remember-me {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #86909C;
+    }
+    
+    .forgot-password {
+      color: #00B578;
+      text-decoration: none;
+    }
+    
+    .forgot-password:hover {
+      text-decoration: underline;
+    }
+    
+    .login-button {
+      width: 100%;
+      padding: 12px;
+      background: #00B578;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .login-button:hover {
+      background: #009A63;
+    }
+    
+    .login-button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+    
+    .demo-button {
+      width: 100%;
+      padding: 10px;
+      background: white;
+      color: #00B578;
+      border: 1px solid #00B578;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 24px;
+      transition: all 0.2s;
+    }
+    
+    .demo-button:hover {
+      background: rgba(0, 181, 120, 0.05);
+    }
+    
+    .demo-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .register-link {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 14px;
+      color: #86909C;
+    }
+    
+    .register-link a {
+      color: #00B578;
+      text-decoration: none;
+    }
+    
+    .register-link a:hover {
+      text-decoration: underline;
+    }
+    
+    .error-message {
+      background: #FFF2F0;
+      border: 1px solid #FFCCC7;
+      color: #FF4D4F;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      display: none;
+    }
+    
+    .success-message {
+      background: #F6FFED;
+      border: 1px solid #B7EB8F;
+      color: #52C41A;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      display: none;
+    }
+    
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-header">
+      <h1 class="login-title">欢迎回来</h1>
+      <p class="login-subtitle">登录你的设计师账号</p>
+    </div>
+    
+    <div id="errorMessage" class="error-message"></div>
+    <div id="successMessage" class="success-message"></div>
+    
+    <form id="loginForm">
+      <div class="form-group">
+        <label class="form-label">邮箱</label>
+        <input type="email" id="email" class="form-input" placeholder="请输入邮箱" value="designer@test.com" required>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">密码</label>
+        <input type="password" id="password" class="form-input" placeholder="请输入密码" value="123456" required>
+      </div>
+      
+      <div class="form-options">
+        <label class="remember-me">
+          <input type="checkbox"> 记住我
+        </label>
+        <a href="#" class="forgot-password">忘记密码？</a>
+      </div>
+      
+      <button type="submit" id="loginButton" class="login-button">
+        登录
+      </button>
+    </form>
+    
+    <button id="demoButton" class="demo-button">
+      演示账号登录（designer@test.com）
+    </button>
+    
+    <p class="register-link">
+      还没有账号？<a href="/register">立即注册</a>
+    </p>
+  </div>
+  
+  <script>
+    // 元素引用
+    const loginForm = document.getElementById('loginForm')
+    const emailInput = document.getElementById('email')
+    const passwordInput = document.getElementById('password')
+    const loginButton = document.getElementById('loginButton')
+    const demoButton = document.getElementById('demoButton')
+    const errorMessage = document.getElementById('errorMessage')
+    const successMessage = document.getElementById('successMessage')
+    
+    let isLoading = false
+    
+    // 显示错误消息
+    function showError(message) {
+      errorMessage.textContent = message
+      errorMessage.style.display = 'block'
+      successMessage.style.display = 'none'
+    }
+    
+    // 显示成功消息
+    function showSuccess(message) {
+      successMessage.textContent = message
+      successMessage.style.display = 'block'
+      errorMessage.style.display = 'none'
+    }
+    
+    // 隐藏所有消息
+    function hideMessages() {
+      errorMessage.style.display = 'none'
+      successMessage.style.display = 'none'
+    }
+    
+    // 设置加载状态
+    function setLoading(loading) {
+      isLoading = loading
+      loginButton.disabled = loading
+      demoButton.disabled = loading
+      
+      if (loading) {
+        loginButton.innerHTML = '<span class="loading-spinner"></span>登录中...'
+        demoButton.textContent = '登录中...'
+      } else {
+        loginButton.innerHTML = '登录'
+        demoButton.textContent = '演示账号登录（designer@test.com）'
+      }
+    }
+    
+    // 执行登录
+    async function performLogin(email, password) {
+      if (isLoading) return
+      
+      hideMessages()
+      setLoading(true)
+      
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email, password })
+        })
+        
+        const data = await response.json()
+        
+        if (response.ok && data.success) {
+          showSuccess('✅ 登录成功！正在跳转...')
+          // 3秒后跳转
+          setTimeout(() => {
+            window.location.href = '/services'
+          }, 1000)
+        } else {
+          showError('❌ ' + (data.error || '登录失败'))
+          setLoading(false)
+        }
+      } catch (error) {
+        showError('❌ 网络错误，请重试')
+        setLoading(false)
+      }
+    }
+    
+    // 表单提交
+    loginForm.addEventListener('submit', function(e) {
+      e.preventDefault()
+      const email = emailInput.value.trim()
+      const password = passwordInput.value.trim()
+      
+      if (!email || !password) {
+        showError('请输入邮箱和密码')
+        return
+      }
+      
+      performLogin(email, password)
+    })
+    
+    // 演示账号登录
+    demoButton.addEventListener('click', function() {
+      emailInput.value = 'designer@test.com'
+      passwordInput.value = '123456'
+      performLogin('designer@test.com', '123456')
+    })
+    
+    // 自动登录测试（可选）
+    // setTimeout(() => {
+    //   console.log('自动登录测试...')
+    //   performLogin('designer@test.com', '123456')
+    // }, 1000)
+  </script>
+</body>
+</html>

@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>数据分析 - 设计师接单平台</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { background: #F5F6FA; min-height: 100vh; }
+    
+    .container { max-width: 1200px; }
+    
+    .header { text-align: center; margin-bottom: 30px; padding: 20px; }
+    .title { font-size: 28px; font-weight: 700; color: #1D2129; margin-bottom: 8px; }
+    .subtitle { font-size: 16px; color: #86909C; }
+    
+    .time-filter { background: white; border: 1px solid #E5E6EB; border-radius: 12px; padding: 20px; margin-bottom: 30px; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+    .filter-label { font-weight: 600; color: #1D2129; }
+    .filter-select { padding: 12px 16px; border: 1px solid #E5E6EB; border-radius: 8px; font-size: 14px; min-width: 120px; }
+    .apply-btn { background: #00B578; color: white; border: none; border-radius: 8px; padding: 12px 20px; font-size: 14px; font-weight: 500; cursor: pointer; }
+    
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 30px; }
+    .stat-card { background: white; border: 1px solid #E5E6EB; border-radius: 12px; padding: 24px; }
+    .stat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .stat-title { font-size: 16px; font-weight: 600; color: #1D2129; }
+    .stat-trend { display: flex; align-items: center; gap: 4px; font-size: 14px; }
+    .trend-up { color: #00B578; }
+    .trend-down { color: #FF4D4F; }
+    .stat-value { font-size: 32px; font-weight: 700; color: #1D2129; margin-bottom: 8px; }
+    .stat-change { font-size: 14px; color: #86909C; }
+    
+    .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 24px; margin-bottom: 30px; }
+    .chart-card { background: white; border: 1px solid #E5E6EB; border-radius: 12px; padding: 24px; }
+    .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .chart-title { font-size: 18px; font-weight: 600; color: #1D2129; }
+    .chart-container { height: 300px; position: relative; }
+    
+    .table-card { background: white; border: 1px solid #E5E6EB; border-radius: 12px; padding: 24px; margin-bottom: 30px; }
+    .table-title { font-size: 18px; font-weight: 600; color: #1D2129; margin-bottom: 20px; }
+    .top-clients-table { width: 100%; border-collapse: collapse; }
+    .top-clients-table th { text-align: left; padding: 12px 16px; background: #F5F6FA; border-bottom: 1px solid #E5E6EB; font-weight: 600; color: #1D2129; }
+    .top-clients-table td { padding: 12px 16px; border-bottom: 1px solid #E5E6EB; }
+    .client-rank { width: 40px; text-align: center; }
+    .client-name { font-weight: 600; }
+    .client-amount { text-align: right; font-weight: 600; }
+    
+    .loading { text-align: center; padding: 60px; }
+    .spinner { width: 48px; height: 48px; border: 4px solid #E5E6EB; border-top-color: #00B578; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    .error { background: #FFF2F0; border: 1px solid #FFCCC7; color: #FF4D4F; padding: 16px; border-radius: 8px; margin-bottom: 20px; }
+    
+    
+    .nav-link { color: #00B578; text-decoration: none; padding: 8px 16px; border-radius: 8px; }
+    .nav-link:hover { background: rgba(0, 181, 120, 0.1); }
+    
+    .export-btn { background: white; border: 1px solid #E5E6EB; color: #1D2129; border-radius: 8px; padding: 12px 20px; font-size: 14px; font-weight: 500; cursor: pointer; }
+    .export-btn:hover { background: #F5F6FA; }
+    
+    @media (max-width: 768px) {
+      .charts-grid { grid-template-columns: 1fr; }
+      .time-filter { flex-direction: column; align-items: stretch; }
+    }
+      /* 左侧导航 */
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 240px;
+      height: 100vh;
+      background: white;
+      border-right: 1px solid #E5E6EB;
+      padding: 20px;
+      overflow-y: auto;
+      z-index: 1000;
+    }
+    
+    .sidebar-header {
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #E5E6EB;
+    }
+    
+    .sidebar-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1D2129;
+      margin-bottom: 4px;
+    }
+    
+    .sidebar-subtitle {
+      font-size: 12px;
+      color: #86909C;
+    }
+    
+    .nav-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      color: #1D2129;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    
+    .nav-link:hover {
+      background: #F5F6FA;
+      color: #00B578;
+    }
+    
+    .nav-link.active {
+      background: rgba(0, 181, 120, 0.1);
+      color: #00B578;
+      font-weight: 500;
+    }
+    
+    .nav-icon {
+      font-size: 18px;
+      width: 24px;
+      text-align: center;
+    }
+    
+    .nav-text {
+      font-size: 14px;
+    }
+    
+    /* 主内容区域 */
+    .main-content {
+      margin-left: 240px;
+      padding: 20px;
+    }
+    
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 200px;
+        transform: translateX(-100%);
+        transition: transform 0.3s;
+      }
+      
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      
+      .main-content {
+        margin-left: 0;
+      }
+      
+      .mobile-menu-btn {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 1001;
+        background: white;
+        border: 1px solid #E5E6EB;
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- 左侧导航 -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">设计师平台</div>
+        <div class="sidebar-subtitle">管理您的设计业务</div>
+      </div>
+      
+      <div class="nav-menu">
+        <a href="/dashboard-simple.html" class="nav-link ">
+          <div class="nav-icon">📊</div>
+          <div class="nav-text">仪表盘</div>
+        </a>
+        <a href="/services-simple.html" class="nav-link ">
+          <div class="nav-icon">🛠️</div>
+          <div class="nav-text">服务管理</div>
+        </a>
+        <a href="/clients-simple.html" class="nav-link ">
+          <div class="nav-icon">👥</div>
+          <div class="nav-text">客户管理</div>
+        </a>
+        <a href="/orders-simple.html" class="nav-link ">
+          <div class="nav-icon">📦</div>
+          <div class="nav-text">订单管理</div>
+        </a>
+        <a href="/contracts-simple.html" class="nav-link ">
+          <div class="nav-icon">📝</div>
+          <div class="nav-text">合同管理</div>
+        </a>
+        <a href="/invoices-simple.html" class="nav-link ">
+          <div class="nav-icon">🧾</div>
+          <div class="nav-text">发票管理</div>
+        </a>
+        <a href="/analytics-simple.html" class="nav-link active">
+          <div class="nav-icon">📈</div>
+          <div class="nav-text">数据分析</div>
+        </a>
+        <a href="/notifications-simple.html" class="nav-link ">
+          <div class="nav-icon">🔔</div>
+          <div class="nav-text">通知中心</div>
+        </a>
+        <a href="/settings-simple.html" class="nav-link ">
+          <div class="nav-icon">⚙️</div>
+          <div class="nav-text">系统设置</div>
+        </a>
+        <a href="/kanban-simple.html" class="nav-link ">
+          <div class="nav-icon">📋</div>
+          <div class="nav-text">项目管理</div>
+        </a>
+      </div>
+    </div>
+    
+    <!-- 移动端菜单按钮 -->
+    <button class="mobile-menu-btn" id="mobileMenuBtn" style="display: none;">☰</button>
+    
+    <!-- 主内容 -->
+    <div class="main-content">
+    <div class="container">
+    <!-- 标题 -->
+    <div class="header">
+      <h1 class="title">数据分析</h1>
+      <p class="subtitle">洞察您的业务表现</p>
+    </div>
+    
+    <!-- 时间筛选 -->
+    <div class="time-filter">
+      <span class="filter-label">时间范围:</span>
+      <select class="filter-select" id="time-range">
+        <option value="month">本月</option>
+        <option value="quarter">本季度</option>
+        <option value="year">本年</option>
+        <option value="custom">自定义</option>
+      </select>
+      <input type="month" class="filter-select" id="start-month" value="2026-01" style="display: none;">
+      <span style="display: none;">至</span>
+      <input type="month" class="filter-select" id="end-month" value="2026-04" style="display: none;">
+      <button class="apply-btn" onclick="loadAnalytics()">应用筛选</button>
+      <button class="export-btn" onclick="exportData()">导出数据</button>
+    </div>
+    
+    <!-- 错误提示 -->
+    <div class="error" id="error-message" style="display: none;"></div>
+    
+    <!-- 加载中 -->
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>加载分析数据...</p>
+    </div>
+    
+    <!-- 统计卡片 -->
+    <div class="stats-grid" id="stats-grid" style="display: none;">
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-title">总收入</div>
+          <div class="stat-trend trend-up">↑ 12%</div>
+        </div>
+        <div class="stat-value" id="total-revenue">¥0</div>
+        <div class="stat-change">较上月</div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-title">完成订单</div>
+          <div class="stat-trend trend-up">↑ 8%</div>
+        </div>
+        <div class="stat-value" id="completed-orders">0</div>
+        <div class="stat-change">较上月</div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-title">新客户</div>
+          <div class="stat-trend trend-up">↑ 15%</div>
+        </div>
+        <div class="stat-value" id="new-clients">0</div>
+        <div class="stat-change">较上月</div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-title">平均客单价</div>
+          <div class="stat-trend trend-down">↓ 5%</div>
+        </div>
+        <div class="stat-value" id="avg-order-value">¥0</div>
+        <div class="stat-change">较上月</div>
+      </div>
+    </div>
+    
+    <!-- 图表区域 -->
+    <div class="charts-grid" id="charts-grid" style="display: none;">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">月度收入趋势</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="revenue-chart"></canvas>
+        </div>
+      </div>
+      
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">服务类型分布</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="service-chart"></canvas>
+        </div>
+      </div>
+      
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">客户来源分析</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="source-chart"></canvas>
+        </div>
+      </div>
+      
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">项目完成率</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="completion-chart"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 客户排名 -->
+    <div class="table-card" id="clients-table" style="display: none;">
+      <div class="chart-header">
+        <div class="chart-title">Top 10 客户收入排名</div>
+      </div>
+      <table class="top-clients-table">
+        <thead>
+          <tr>
+            <th class="client-rank">排名</th>
+            <th>客户名称</th>
+            <th>订单数量</th>
+            <th class="client-amount">总收入</th>
+          </tr>
+        </thead>
+        <tbody id="top-clients-list"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let revenueChart, serviceChart, sourceChart, completionChart;
+    
+    // 检查登录状态
+    async function checkAuth() {
+      try {
+        const response = await fetch('/api/auth/session', {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          window.location.href = 'login-final.html';
+          return null;
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error('认证检查失败:', error);
+        window.location.href = 'login-final.html';
+        return null;
+      }
+    }
+    
+    // 加载分析数据
+    async function loadAnalytics() {
+      try {
+
+      // 模拟数据（当API不可用时）
+      const useMockData = localStorage.getItem('useMockData') === 'true' || window.location.search.includes('mock=true');
+      if (useMockData) {
+        console.log('使用模拟数据');
+        const mockData = getMockAnalytics();
+        updateStats(mockData);
+        renderAnalytics(mockData);
+        showLoading(false);
+        return;
+      }
+      
+        const session = await checkAuth();
+        if (!session) return;
+        
+        // 显示加载中
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('stats-grid').style.display = 'none';
+        document.getElementById('charts-grid').style.display = 'none';
+        document.getElementById('clients-table').style.display = 'none';
+        
+        // 获取时间范围
+        const timeRange = document.getElementById('time-range').value;
+        let startDate, endDate;
+        
+        if (timeRange === 'month') {
+          startDate = '2026-04-01';
+          endDate = '2026-04-30';
+        } else if (timeRange === 'quarter') {
+          startDate = '2026-01-01';
+          endDate = '2026-03-31';
+        } else if (timeRange === 'year') {
+          startDate = '2026-01-01';
+          endDate = '2026-12-31';
+        } else {
+          // 自定义范围
+          const startMonth = document.getElementById('start-month').value;
+          const endMonth = document.getElementById('end-month').value;
+          startDate = startMonth + '-01';
+          endDate = endMonth + '-31';
+        }
+        
+        // 加载数据
+        const [ordersData, clientsData, servicesData] = await Promise.all([
+          fetch('/api/data?type=analytics&start=' + startDate + '&end=' + endDate, {
+            credentials: 'include'
+          }).then(r => r.ok ? r.json() : []),
+          fetch('/api/data?type=analytics&start=' + startDate + '&end=' + endDate, {
+            credentials: 'include'
+          }).then(r => r.ok ? r.json() : []),
+          fetch('/api/data?type=analytics&start=' + startDate + '&end=' + endDate, {
+            credentials: 'include'
+          }).then(r => r.ok ? r.json() : [])
+        ]);
+        
+        // 更新统计数据
+        updateStats(ordersData, clientsData);
+        
+        // 更新图表
+        updateCharts(ordersData, servicesData);
+        
+        // 更新客户排名
+        updateTopClients(clientsData);
+        
+        // 隐藏加载中，显示内容
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('stats-grid').style.display = 'grid';
+        document.getElementById('charts-grid').style.display = 'grid';
+        document.getElementById('clients-table').style.display = 'block';
+        
+      } catch (error) {
+        document.getElementById('loading').style.display = 'none';
+        showError('加载分析数据失败: ' + error.message);
+      }
+    }
+    
+    // 模拟分析数据
+    function getMockAnalytics() {
+      return {
+        revenueData: [12000, 8000, 15000, 5000, 3000, 10000, 7000],
+        clientRanking: [
+          { name: '张先生', revenue: 32000, projects: 3 },
+          { name: '李女士', revenue: 24000, projects: 2 },
+          { name: '王先生', revenue: 15000, projects: 1 },
+          { name: '赵女士', revenue: 10000, projects: 1 },
+          { name: '刘先生', revenue: 8000, projects: 1 }
+        ],
+        serviceDistribution: [
+          { name: '品牌设计', value: 35 },
+          { name: 'UI设计', value: 25 },
+          { name: '网站设计', value: 20 },
+          { name: '平面设计', value: 15 },
+          { name: '其他', value: 5 }
+        ]
+      };
+    }
+    
+    // 更新统计数据
+    function updateStats(ordersData, clientsData) {
+      const totalRevenue = ordersData.reduce((sum, order) => sum + (order.amount || 0), 0);
+      const completedOrders = ordersData.filter(order => order.status === 'completed').length;
+      const newClients = clientsData.filter(client => {
+        const created = new Date(client.createdAt);
+        const monthAgo = new Date();
+        monthAgo.setMonth(monthAgo.getMonth() - 1);
+        return created > monthAgo;
+      }).length;
+      
+      const avgOrderValue = completedOrders > 0 ? totalRevenue / completedOrders : 0;
+      
+      document.getElementById('total-revenue').textContent = '¥' + totalRevenue.toLocaleString();
+      document.getElementById('completed-orders').textContent = completedOrders;
+      document.getElementById('new-clients').textContent = newClients;
+      document.getElementById('avg-order-value').textContent = '¥' + Math.round(avgOrderValue).toLocaleString();
+    }
+    
+    // 更新图表
+    function updateCharts(ordersData, servicesData) {
+      // 月度收入趋势
+      const monthlyData = {
+        '2026-01': 0, '2026-02': 0, '2026-03': 0, '2026-04': 0
+      };
+      
+      ordersData.forEach(order => {
+        if (order.paidDate) {
+          const month = order.paidDate.substring(0, 7);
+          if (monthlyData[month] !== undefined) {
+            monthlyData[month] += order.amount || 0;
+          }
+        }
+      });
+      
+      if (revenueChart) revenueChart.destroy();
+      revenueChart = new Chart(document.getElementById('revenue-chart'), {
+        type: 'line',
+        data: {
+          labels: Object.keys(monthlyData),
+          datasets: [{
+            label: '收入',
+            data: Object.values(monthlyData),
+            borderColor: '#00B578',
+            backgroundColor: 'rgba(0, 181, 120, 0.1)',
+            tension: 0.4,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } }
+        }
+      });
+      
+      // 服务类型分布
+      const serviceTypes = {};
+      servicesData.forEach(service => {
+        const type = service.category || '其他';
+        serviceTypes[type] = (serviceTypes[type] || 0) + 1;
+      });
+      
+      if (serviceChart) serviceChart.destroy();
+      serviceChart = new Chart(document.getElementById('service-chart'), {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(serviceTypes),
+          datasets: [{
+            data: Object.values(serviceTypes),
+            backgroundColor: [
+              '#00B578', '#00B578', '#FF7D00', '#FF4D4F', '#8B5CF6'
+            ]
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'right' }
+          }
+        }
+      });
+      
+      // 客户来源分析（模拟数据）
+      const sourceData = {
+        '推荐': 35,
+        '搜索引擎': 25,
+        '社交媒体': 20,
+        '直接访问': 15,
+        '其他': 5
+      };
+      
+      if (sourceChart) sourceChart.destroy();
+      sourceChart = new Chart(document.getElementById('source-chart'), {
+        type: 'bar',
+        data: {
+          labels: Object.keys(sourceData),
+          datasets: [{
+            label: '客户数',
+            data: Object.values(sourceData),
+            backgroundColor: '#00B578'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } }
+        }
+      });
+      
+      // 项目完成率（模拟数据）
+      const completionData = {
+        '已完成': 65,
+        '进行中': 25,
+        '待开始': 10
+      };
+      
+      if (completionChart) completionChart.destroy();
+      completionChart = new Chart(document.getElementById('completion-chart'), {
+        type: 'pie',
+        data: {
+          labels: Object.keys(completionData),
+          datasets: [{
+            data: Object.values(completionData),
+            backgroundColor: ['#00B578', '#00B578', '#FF7D00']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'right' }
+          }
+        }
+      });
+    }
+    
+    // 更新客户排名
+    function updateTopClients(clientsData) {
+      // 按收入排序
+      const sortedClients = [...clientsData]
+        .sort((a, b) => (b.totalRevenue || 0) - (a.totalRevenue || 0))
+        .slice(0, 10);
+      
+      const clientsList = document.getElementById('top-clients-list');
+      clientsList.innerHTML = '';
+      
+      sortedClients.forEach((client, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="client-rank">${index + 1}</td>
+          <td class="client-name">${client.name || '未命名客户'}</td>
+          <td>${client.orderCount || 0}</td>
+          <td class="client-amount">¥${(client.totalRevenue || 0).toLocaleString()}</td>
+        `;
+        clientsList.appendChild(row);
+      });
+    }
+    
+    // 导出数据
+    function exportData() {
+      alert('导出数据 - 功能开发中');
+      // 实际实现中会生成CSV或Excel文件
+    }
+    
+    // 显示错误信息
+        // 显示/隐藏加载状态
+    function showLoading(show) {
+      const loadingDiv = document.getElementById('loading');
+      const contentDiv = document.getElementById('content-container');
+      if (loadingDiv) loadingDiv.style.display = show ? 'block' : 'none';
+      if (contentDiv) contentDiv.style.display = show ? 'none' : 'block';
+    }
+
+    // 显示错误信息
+    function showError(message) {
+      const errorDiv = document.getElementById('error-message');
+      errorDiv.textContent = message;
+      errorDiv.style.display = 'block';
+      setTimeout(() => {
+        errorDiv.style.display = 'none';
+      }, 5000);
+    }
+    
+    // 切换自定义时间范围
+    function toggleCustomRange() {
+      const timeRange = document.getElementById('time-range').value;
+      const isCustom = timeRange === 'custom';
+      
+      document.getElementById('start-month').style.display = isCustom ? 'block' : 'none';
+      document.getElementById('end-month').style.display = isCustom ? 'block' : 'none';
+      document.querySelector('.time-filter span:nth-child(3)').style.display = isCustom ? 'inline' : 'none';
+    }
+    
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      loadAnalytics();
+      
+      // 绑定时间范围切换事件
+      document.getElementById('time-range').addEventListener('change', toggleCustomRange);
+    });</html>

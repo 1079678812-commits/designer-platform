@@ -1,0 +1,207 @@
+></svg>
+          </div>
+          <div class="stat-value" id="avgRating">0.0</div>
+        </div>
+      </div>
+      
+      <!-- 搜索和过滤 -->
+      <div class="search-filter">
+        <div class="search-box">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
+          <input type="text" class="search-input" id="searchInput" placeholder="搜索服务名称或描述...">
+        </div>
+        <select class="filter-select" id="categoryFilter">
+          <option value="">所有分类</option>
+          <option value="品牌设计">品牌设计</option>
+          <option value="界面设计">界面设计</option>
+          <option value="平面设计">平面设计</option>
+          <option value="演示设计">演示设计</option>
+          <option value="产品设计">产品设计</option>
+          <option value="插画">插画</option>
+        </select>
+        <select class="filter-select" id="statusFilter">
+          <option value="">所有状态</option>
+          <option value="active">已上架</option>
+          <option value="inactive">已下架</option>
+          <option value="draft">草稿</option>
+        </select>
+        <button class="add-service-btn" onclick="addNewService()">+ 新建服务</button>
+      </div>
+      
+      <!-- 错误消息 -->
+      <div id="errorMessage" class="error-message" style="display: none;"></div>
+      
+      <!-- 加载状态 -->
+      <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>加载服务数据中...</p>
+      </div>
+      
+      <!-- 服务列表 -->
+      <div id="servicesContainer" class="services-grid" style="display: none;"></div>
+    </div>
+  </div>
+  
+  <script>
+    // 全局变量
+    let allServices = []
+    
+    // 页面加载时获取数据
+    document.addEventListener('DOMContentLoaded', function() {
+      loadServices()
+      
+      // 搜索和过滤事件
+      document.getElementById('searchInput').addEventListener('input', filterServices)
+      document.getElementById('categoryFilter').addEventListener('change', filterServices)
+      document.getElementById('statusFilter').addEventListener('change', filterServices)
+    })
+    
+    // 加载服务数据
+    async function loadServices() {
+      try {
+        showLoading(true)
+        
+        const response = await fetch('/api/services')
+        if (!response.ok) {
+          throw new Error(`API错误: ${response.status}`)
+        }
+        
+        const result = await response.json()
+        
+        if (result.success && Array.isArray(result.data)) {
+          allServices = result.data
+          updateStats(allServices)
+          renderServices(allServices)
+          showLoading(false)
+        } else {
+          throw new Error('数据格式错误')
+        }
+      } catch (error) {
+        showError('加载服务失败: ' + error.message)
+        showLoading(false)
+      }
+    }
+    
+    // 更新统计信息
+    function updateStats(services) {
+      const total = services.length
+      const active = services.filter(s => s.status === 'active').length
+      const totalRevenue = services.reduce((sum, s) => sum + (s.price || 0), 0)
+      const avgRating = services.length > 0 
+        ? (services.reduce((sum, s) => sum + (s.rating || 0), 0) / services.length).toFixed(1)
+        : 0
+      
+      document.getElementById('totalServices').textContent = total
+      document.getElementById('activeServices').textContent = active
+      document.getElementById('totalRevenue').textContent = totalRevenue.toLocaleString()
+      document.getElementById('avgRating').textContent = avgRating
+    }
+    
+    // 渲染服务列表
+    function renderServices(services) {
+      const container = document.getElementById('servicesContainer')
+      
+      if (services.length === 0) {
+        container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #86909C;">暂无服务数据</div>'
+        container.style.display = 'grid'
+        return
+      }
+      
+      let html = ''
+      
+      services.forEach(service => {
+        const statusClass = service.status === 'active' ? 'status-active' :
+                          service.status === 'inactive' ? 'status-inactive' : 'status-draft'
+        const statusText = service.status === 'active' ? '已上架' :
+                          service.status === 'inactive' ? '已下架' : '草稿'
+        
+        // 解析标签
+        let tags = []
+        try {
+          tags = JSON.parse(service.tags || '[]')
+        } catch (e) {
+          tags = []
+        }
+        
+        html += `
+          <div class="service-card">
+            <div class="service-header">
+              <div class="service-name">${escapeHtml(service.name)}</div>
+              <div class="service-status ${statusClass}">${statusText}</div>
+            </div>
+            <div class="service-description">${escapeHtml(service.description || '暂无描述')}</div>
+            <div class="service-footer">
+              <div class="service-price">¥${service.price?.toLocaleString() || '0'}</div>
+              <div class="service-meta">
+                <div class="meta-item">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+                  ${formatDate(service.createdAt)}
+                </div>
+                <div class="meta-item">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+                  ${service.rating || 0}
+                </div>
+              </div>
+            </div>
+          </div>
+        `
+      })
+      
+      container.innerHTML = html
+      container.style.display = 'grid'
+    }
+    
+    // 过滤服务
+    function filterServices() {
+      const search = document.getElementById('searchInput').value.toLowerCase()
+      const category = document.getElementById('categoryFilter').value
+      const status = document.getElementById('statusFilter').value
+      
+      const filtered = allServices.filter(service => {
+        const matchesSearch = !search || 
+          service.name.toLowerCase().includes(search) || 
+          (service.description && service.description.toLowerCase().includes(search))
+        
+        const matchesCategory = !category || service.category === category
+        const matchesStatus = !status || service.status === status
+        
+        return matchesSearch && matchesCategory && matchesStatus
+      })
+      
+      renderServices(filtered)
+      updateStats(filtered)
+    }
+    
+    // 新建服务
+    function addNewService() {
+      alert('新建服务功能（React版本可用）')
+      // 实际项目中这里会打开模态框或跳转到创建页面
+    }
+    
+    // 工具函数
+    function showLoading(show) {
+      document.getElementById('loading').style.display = show ? 'flex' : 'none'
+      document.getElementById('servicesContainer').style.display = show ? 'none' : 'grid'
+    }
+    
+    function showError(message) {
+      const errorDiv = document.getElementById('errorMessage')
+      errorDiv.textContent = message
+      errorDiv.style.display = 'block'
+      setTimeout(() => errorDiv.style.display = 'none', 5000)
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div')
+      div.textContent = text
+      return div.innerHTML
+    }
+    
+    function formatDate(dateString) {
+      if (!dateString) return '未知'
+      const date = new Date(dateString)
+      return date.toLocaleDateString('zh-CN')
+    }
+  </script>
+</body>
+</html>

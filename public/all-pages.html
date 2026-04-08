@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设计师平台 - 所有页面导航</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 30px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #00B578, #009A63);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 20px;
+        }
+        
+        .phase-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .phase-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            color: #333;
+        }
+        
+        .phase-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #00B578;
+        }
+        
+        .phase-icon {
+            font-size: 2rem;
+            width: 60px;
+            height: 60px;
+            background: #00B578;
+            color: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .phase-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d3748;
+        }
+        
+        .phase-desc {
+            color: #718096;
+            font-size: 0.95rem;
+        }
+        
+        .pages-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .page-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            background: #f7fafc;
+            border-radius: 10px;
+            text-decoration: none;
+            color: #4a5568;
+            transition: all 0.3s ease;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .page-item:hover {
+            background: #00B578;
+            color: white;
+            transform: translateX(5px);
+            border-color: #00B578;
+        }
+        
+        .page-number {
+            width: 28px;
+            height: 28px;
+            background: #00B578;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .page-item:hover .page-number {
+            background: white;
+            color: #00B578;
+        }
+        
+        .page-name {
+            flex: 1;
+            font-weight: 500;
+        }
+        
+        .page-url {
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            color: #a0aec0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 200px;
+        }
+        
+        .page-item:hover .page-url {
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+        
+        .action-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            color: #333;
+            transition: all 0.3s ease;
+        }
+        
+        .action-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .action-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .action-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+        
+        .action-desc {
+            color: #718096;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+        
+        .action-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #00B578;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .action-btn:hover {
+            background: #009A63;
+            transform: translateY(-2px);
+        }
+        
+        .status-bar {
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-label {
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .status-value {
+            font-weight: 600;
+            color: white;
+        }
+        
+        .success {
+            color: #4CAF50;
+        }
+        
+        @media (max-width: 768px) {
+            .phase-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .page-url {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎨 设计师平台 - 完整导航</h1>
+            <p class="subtitle">3期开发，14个页面，8大功能模块</p>
+            <div class="status-bar">
+                <div class="status-item">
+                    <span class="status-label">服务器状态：</span>
+                    <span class="status-value success" id="serverStatus">✅ 正常</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">总页面数：</span>
+                    <span class="status-value">14个</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">登录状态：</span>
+                    <span class="status-value" id="loginStatus">检测中...</span>
+                </div>
+            </div>
+        </header>
+        
+        <div class="phase-grid">
+            <!-- 第1期：基础框架 -->
+            <div class="phase-card">
+                <div class="phase-header">
+                    <div class="phase-icon">1️⃣</div>
+                    <div>
+                        <div class="phase-title">第1期：基础框架</div>
+                        <div class="phase-desc">登录/注册 + 核心页面 + 响应式布局</div>
+                    </div>
+                </div>
+                <div class="pages-list">
+                    <a href="/" class="page-item" target="_blank">
+                        <span class="page-number">1</span>
+                        <span class="page-name">首页</span>
+                        <span class="page-url">/</span>
+                    </a>
+                    <a href="/login" class="page-item" target="_blank">
+                        <span class="page-number">2</span>
+                        <span class="page-name">登录页面</span>
+                        <span class="page-url">/login</span>
+                    </a>
+                    <a href="/register" class="page-item" target="_blank">
+                        <span class="page-number">3</span>
+                        <span class="page-name">注册页面</span>
+                        <span class="page-url">/register</span>
+                    </a>
+                    <a href="/services" class="page-item" target="_blank">
+                        <span class="page-number">4</span>
+                        <span class="page-name">我的服务</span>
+                        <span class="page-url">/services</span>
+                    </a>
+                    <a href="/dashboard" class="page-item" target="_blank">
+                        <span class="page-number">5</span>
+                        <span class="page-name">仪表盘</span>
+                        <span class="page-url">/dashboard</span>
+                    </a>
+                    <a href="/not-found" class="page-item" target="_blank">
+                        <span class="page-number">6</span>
+                        <span class="page-name">404页面</span>
+                        <span class="page-url">/not-found</span>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- 第2期：业务管理 -->
+            <div class="phase-card">
+                <div class="phase-header">
+                    <div class="phase-icon">2️⃣</div>
+                    <div>
+                        <div class="phase-title">第2期：业务管理</div>
+                        <div class="phase-desc">客户/订单/通知/设置管理模块</div>
+                    </div>
+                </div>
+                <div class="pages-list">
+                    <a href="/clients" class="page-item" target="_blank">
+                        <span class="page-number">7</span>
+                        <span class="page-name">客户管理</span>
+                        <span class="page-url">/clients</span>
+                    </a>
+                    <a href="/orders" class="page-item" target="_blank">
+                        <span class="page-number">8</span>
+                        <span class="page-name">订单管理</span>
+                        <span class="page-url">/orders</span>
+                    </a>
+                    <a href="/notifications" class="page-item" target="_blank">
+                        <span class="page-number">9</span>
+                        <span class="page-name">消息通知</span>
+                        <span class="page-url">/notifications</span>
+                    </a>
+                    <a href="/settings" class="page-item" target="_blank">
+                        <span class="page-number">10</span>
+                        <span class="page-name">设置页面</span>
+                        <span class="page-url">/settings</span>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- 第3期：高级功能 -->
+            <div class="phase-card">
+                <div class="phase-header">
+                    <div class="phase-icon">3️⃣</div>
+                    <div>
+                        <div class="phase-title">第3期：高级功能</div>
+                        <div class="phase-desc">数据分析 + 项目管理 + 合同发票</div>
+                    </div>
+                </div>
+                <div class="pages-list">
+                    <a href="/analytics" class="page-item" target="_blank">
+                        <span class="page-number">11</span>
+                        <span class="page-name">数据分析</span>
+                        <span class="page-url">/analytics</span>
+                    </a>
+                    <a href="/kanban" class="page-item" target="_blank">
+                        <span class="page-number">12</span>
+                        <span class="page-name">项目管理</span>
+                        <span class="page-url">/kanban</span>
+                    </a>
+                    <a href="/contracts" class="page-item" target="_blank">
+                        <span class="page-number">13</span>
+                        <span class="page-name">合同管理</span>
+                        <span class="page-url">/contracts</span>
+                    </a>
+                    <a href="/invoices" class="page-item" target="_blank">
+                        <span class="page-number">14</span>
+                        <span class="page-name">发票管理</span>
+                        <span class="page-url">/invoices</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="quick-actions">
+            <div class="action-card">
+                <div class="action-icon">🚀</div>
+                <div class="action-title">快速登录</div>
+                <div class="action-desc">一键登录体验完整功能</div>
+                <a href="/login-simple-redirect.html" class="action-btn" target="_blank">立即登录</a>
+            </div>
+            
+            <div class="action-card">
+                <div class="action-icon">📱</div>
+                <div class="action-title">移动端测试</div>
+                <div class="action-desc">测试响应式布局和触摸优化</div>
+                <a href="/mobile-test.html" class="action-btn" target="_blank">移动测试</a>
+            </div>
+            
+            <div class="action-card">
+                <div class="action-icon">🔧</div>
+                <div class="action-title">诊断工具</div>
+                <div class="action-desc">检查系统状态和功能</div>
+                <a href="/login-final-test.html" class="action-btn" target="_blank">系统诊断</a>
+            </div>
+        </div>
+        
+        <div class="status-bar" style="margin-top: 30px;">
+            <div class="status-item">
+                <span class="status-label">访问地址：</span>
+                <span class="status-value">http://192.168.31.101:3000</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">开发时间：</span>
+                <span class="status-value">约180分钟（3小时）</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">技术栈：</span>
+                <span class="status-value">Next.js + TypeScript + Tailwind</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 检查登录状态
+        function checkLoginStatus() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn')
+            const userName = localStorage.getItem('userName')
+            const loginStatus = document.getElementById('loginStatus')
+            
+            if (isLoggedIn === 'true' && userName) {
+                loginStatus.textContent = `✅ 已登录 (${userName})`
+                loginStatus.className = 'status-value success'
+            } else {
+                loginStatus.textContent = '❌ 未登录'
+                loginStatus.className = 'status-value'
+            }
+        }
+        
+        // 检查服务器状态
+        function checkServerStatus() {
+            fetch('/')
+                .then(response => {
+                    const serverStatus = document.getElementById('serverStatus')
+                    if (response.ok) {
+                        serverStatus.textContent = '✅ 正常'
+                        serverStatus.className = 'status-value success'
+                    }
+                })
+                .catch(() => {
+                    const serverStatus = document.getElementById('serverStatus')
+                    serverStatus.textContent = '❌ 异常'
+                    serverStatus.className = 'status-value'
+                })
+        }
+        
+        // 页面加载时检查状态
+        document.addEventListener('DOMContentLoaded', () => {
+            checkLoginStatus()
+            checkServerStatus()
+            
+            // 每5秒更新一次状态
+            setInterval(checkLoginStatus, 5000)
+        })
+        
+        // 为所有链接添加点击跟踪
+        document.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', function() {
+                console.log(`跳转到: ${this.getAttribute('href')}`)
+            })
+        })
+    </script>
+</body>
+</html>

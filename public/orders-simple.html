@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>订单管理 - 设计师接单平台</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { background: #F5F6FA; min-height: 100vh; }
+    
+    .container { max-width: 1200px; }
+    
+    .header { text-align: center; margin-bottom: 30px; padding: 20px; }
+    .title { font-size: 28px; font-weight: 700; color: #1D2129; margin-bottom: 8px; }
+    .subtitle { font-size: 16px; color: #86909C; }
+    
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 30px; }
+    .stat-card { background: white; border: 1px solid #E5E6EB; border-radius: 12px; padding: 20px; text-align: center; }
+    .stat-label { font-size: 14px; color: #86909C; margin-bottom: 8px; }
+    .stat-value { font-size: 24px; font-weight: 700; color: #00B578; }
+    
+    .controls { background: white; border: 1px solid #E5E6EB; border-radius: 12px; padding: 20px; margin-bottom: 30px; display: flex; gap: 16px; flex-wrap: wrap; }
+    .search-input { flex: 1; min-width: 200px; padding: 12px 16px; border: 1px solid #E5E6EB; border-radius: 8px; font-size: 14px; }
+    .filter-select { padding: 12px 16px; border: 1px solid #E5E6EB; border-radius: 8px; font-size: 14px; min-width: 120px; }
+    .add-btn { background: #00B578; color: white; border: none; border-radius: 8px; padding: 12px 20px; font-size: 14px; font-weight: 500; cursor: pointer; }
+    
+    .orders-table { background: white; border: 1px solid #E5E6EB; border-radius: 12px; overflow: hidden; }
+    .table-header { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr 0.5fr; background: #F5F6FA; padding: 16px 20px; border-bottom: 1px solid #E5E6EB; font-weight: 600; color: #1D2129; }
+    .table-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr 0.5fr; padding: 16px 20px; border-bottom: 1px solid #E5E6EB; align-items: center; }
+    .table-row:hover { background: #F5F6FA; }
+    
+    .order-number { font-weight: 600; color: #1D2129; }
+    .order-client { color: #1D2129; }
+    .order-service { color: #1D2129; }
+    .order-amount { font-weight: 600; color: #1D2129; }
+    .order-date { color: #86909C; font-size: 14px; }
+    
+    .status-badge { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 500; text-align: center; }
+    .status-draft { background: rgba(255, 125, 0, 0.1); color: #FF7D00; }
+    .status-pending { background: rgba(0, 181, 120, 0.1); color: #00B578; }
+    .status-processing { background: rgba(0, 181, 120, 0.1); color: #00B578; }
+    .status-review { background: rgba(155, 0, 255, 0.1); color: #9B00FF; }
+    .status-completed { background: rgba(0, 181, 120, 0.1); color: #00B578; }
+    
+    .progress-bar { width: 100%; height: 6px; background: #E5E6EB; border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; background: #00B578; border-radius: 3px; }
+    
+    .action-btn { background: none; border: 1px solid #E5E6EB; border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer; color: #1D2129; }
+    .action-btn:hover { background: #F5F6FA; }
+    
+    .pagination { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 30px; }
+    .page-btn { background: white; border: 1px solid #E5E6EB; border-radius: 8px; padding: 8px 16px; cursor: pointer; }
+    .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .page-info { color: #86909C; font-size: 14px; }
+    
+    .loading { text-align: center; padding: 60px; }
+    .spinner { width: 48px; height: 48px; border: 4px solid #E5E6EB; border-top-color: #00B578; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    .error { background: #FFF2F0; border: 1px solid #FFCCC7; color: #FF4D4F; padding: 16px; border-radius: 8px; margin-bottom: 20px; }
+    
+    
+    .nav-link { color: #00B578; text-decoration: none; padding: 8px 16px; border-radius: 8px; }
+    .nav-link:hover { background: rgba(0, 181, 120, 0.1); }
+    
+    @media (max-width: 768px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .table-header, .table-row { grid-template-columns: 1fr; gap: 8px; }
+      .controls { flex-direction: column; }
+    }
+      /* 左侧导航 */
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 240px;
+      height: 100vh;
+      background: white;
+      border-right: 1px solid #E5E6EB;
+      padding: 20px;
+      overflow-y: auto;
+      z-index: 1000;
+    }
+    
+    .sidebar-header {
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #E5E6EB;
+    }
+    
+    .sidebar-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1D2129;
+      margin-bottom: 4px;
+    }
+    
+    .sidebar-subtitle {
+      font-size: 12px;
+      color: #86909C;
+    }
+    
+    .nav-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      color: #1D2129;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    
+    .nav-link:hover {
+      background: #F5F6FA;
+      color: #00B578;
+    }
+    
+    .nav-link.active {
+      background: rgba(0, 181, 120, 0.1);
+      color: #00B578;
+      font-weight: 500;
+    }
+    
+    .nav-icon {
+      font-size: 18px;
+      width: 24px;
+      text-align: center;
+    }
+    
+    .nav-text {
+      font-size: 14px;
+    }
+    
+    /* 主内容区域 */
+    .main-content {
+      margin-left: 240px;
+      padding: 20px;
+    }
+    
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 200px;
+        transform: translateX(-100%);
+        transition: transform 0.3s;
+      }
+      
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      
+      .main-content {
+        margin-left: 0;
+      }
+      
+      .mobile-menu-btn {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 1001;
+        background: white;
+        border: 1px solid #E5E6EB;
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+    }
+  </style>
+</head>
+<body>
+    <!-- 左侧导航 -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">设计师平台</div>
+        <div class="sidebar-subtitle">管理您的设计业务</div>
+      </div>
+      
+      <div class="nav-menu">
+        <a href="/dashboard-simple.html" class="nav-link ">
+          <div class="nav-icon">📊</div>
+          <div class="nav-text">仪表盘</div>
+        </a>
+        <a href="/services-simple.html" class="nav-link ">
+          <div class="nav-icon">🛠️</div>
+          <div class="nav-text">服务管理</div>
+        </a>
+        <a href="/clients-simple.html" class="nav-link ">
+          <div class="nav-icon">👥</div>
+          <div class="nav-text">客户管理</div>
+        </a>
+        <a href="/orders-simple.html" class="nav-link active">
+          <div class="nav-icon">📦</div>
+          <div class="nav-text">订单管理</div>
+        </a>
+        <a href="/contracts-simple.html" class="nav-link ">
+          <div class="nav-icon">📝</div>
+          <div class="nav-text">合同管理</div>
+        </a>
+        <a href="/invoices-simple.html" class="nav-link ">
+          <div class="nav-icon">🧾</div>
+          <div class="nav-text">发票管理</div>
+        </a>
+        <a href="/analytics-simple.html" class="nav-link ">
+          <div class="nav-icon">📈</div>
+          <div class="nav-text">数据分析</div>
+        </a>
+        <a href="/notifications-simple.html" class="nav-link ">
+          <div class="nav-icon">🔔</div>
+          <div class="nav-text">通知中心</div>
+        </a>
+        <a href="/settings-simple.html" class="nav-link ">
+          <div class="nav-icon">⚙️</div>
+          <div class="nav-text">系统设置</div>
+        </a>
+        <a href="/kanban-simple.html" class="nav-link ">
+          <div class="nav-icon">📋</div>
+          <div class="nav-text">项目管理</div>
+        </a>
+      </div>
+    </div>
+    
+    <!-- 移动端菜单按钮 -->
+    <button class="mobile-menu-btn" id="mobileMenuBtn" style="display: none;">☰</button>
+    
+    <!-- 主内容 -->
+    <div class="main-content">
+    <div class="container">
+    <!-- 标题 -->
+    <div class="header">
+      <h1 class="title">订单管理</h1>
+      <p class="subtitle">处理客户订单和交付</p>
+    </div>
+    
+    <!-- 错误消息 -->
+    <div id="errorMessage" class="error" style="display: none;"></div>
+    
+    <!-- 统计 -->
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">总订单数</div>
+        <div class="stat-value" id="totalOrders">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">进行中</div>
+        <div class="stat-value" id="processingOrders">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">待处理</div>
+        <div class="stat-value" id="pendingOrders">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">总金额</div>
+        <div class="stat-value">¥<span id="totalAmount">0</span></div>
+      </div>
+    </div>
+    
+    <!-- 控制栏 -->
+    <div class="controls">
+      <input type="text" class="search-input" id="searchInput" placeholder="搜索订单号或客户...">
+      <select class="filter-select" id="statusFilter">
+        <option value="">所有状态</option>
+        <option value="draft">草稿</option>
+        <option value="pending">待处理</option>
+        <option value="processing">进行中</option>
+        <option value="review">审核中</option>
+        <option value="completed">已完成</option>
+      </select>
+      <select class="filter-select" id="dateFilter">
+        <option value="">所有时间</option>
+        <option value="today">今天</option>
+        <option value="week">本周</option>
+        <option value="month">本月</option>
+      </select>
+      <button class="add-btn" onclick="createNewOrder()">+ 新建订单</button>
+    </div>
+    
+    <!-- 加载状态 -->
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <div>加载订单数据...</div>
+    </div>
+    
+    <!-- 订单表格 -->
+    <div id="ordersContainer" class="orders-table" style="display: none;">
+      <div class="table-header">
+        <div>订单号</div>
+        <div>客户</div>
+        <div>服务</div>
+        <div>金额</div>
+        <div>状态/进度</div>
+        <div>操作</div>
+      </div>
+      <div id="ordersBody">
+        <!-- 订单数据将通过JavaScript动态生成 -->
+      </div>
+    </div>
+    
+    <!-- 分页 -->
+    <div id="pagination" class="pagination" style="display: none;">
+      <button class="page-btn" id="prevBtn" onclick="changePage(-1)">上一页</button>
+      <div class="page-info" id="pageInfo">第 1 页 / 共 1 页</div>
+      <button class="page-btn" id="nextBtn" onclick="changePage(1)">下一页</button>
+    </div>
+  </div>
+
+  <script>
+    // 全局变量
+    let allOrders = [];
+    let currentPage = 1;
+    const pageSize = 10;
+    
+    // 页面加载时初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      loadOrders();
+      
+      // 绑定搜索和筛选事件
+      document.getElementById('searchInput').addEventListener('input', filterOrders);
+      document.getElementById('statusFilter').addEventListener('change', filterOrders);
+      document.getElementById('dateFilter').addEventListener('change', filterOrders);
+    });
+    
+    // 加载订单数据
+    async function loadOrders() {
+      try {
+        showLoading(true);
+        
+        // 模拟数据（当API不可用时）
+        const useMockData = localStorage.getItem('useMockData') === 'true' || window.location.search.includes('mock=true');
+        if (useMockData) {
+          console.log('使用模拟数据');
+          allOrders = getMockOrders();
+          updateStats(allOrders);
+          renderOrders(allOrders);
+          showLoading(false);
+          return;
+        }
+        
+        // 实际项目中这里会调用API
+        // const response = await fetch('/api/orders');
+        // allOrders = await response.json();
+        // updateStats(allOrders);
+        // renderOrders(allOrders);
+        
+      } catch (error) {
+        showError('加载订单数据失败: ' + error.message);
+        // 使用模拟数据作为后备
+        allOrders = getMockOrders();
+        updateStats(allOrders);
+        renderOrders(allOrders);
+      } finally {
+        showLoading(false);
+      }
+    }
+    
+    // 模拟订单数据
+    function getMockOrders() {
+      return [
+        {
+          id: '1',
+          orderNumber: 'ORD-202404001',
+          clientName: '张先生',
+          serviceName: '品牌设计',
+          totalAmount: 12000,
+          status: 'processing',
+          progress: 65,
+          dueDate: '2026-04-10',
+          createdAt: '2026-04-01'
+        },
+        {
+          id: '2',
+          orderNumber: 'ORD-202404002',
+          clientName: '李女士',
+          serviceName: 'UI设计',
+          totalAmount: 8000,
+          status: 'pending',
+          progress: 0,
+          dueDate: '2026-04-12',
+          createdAt: '2026-04-02'
+        },
+        {
+          id: '3',
+          orderNumber: 'ORD-202404003',
+          clientName: '王先生',
+          serviceName: '网站设计',
+          totalAmount: 15000,
+          status: 'review',
+          progress: 90,
+          dueDate: '2026-04-05',
+          createdAt: '2026-03-28'
+        },
+        {
+          id: '4',
+          orderNumber: 'ORD-202404004',
+          clientName: '赵女士',
+          serviceName: '平面设计',
+          totalAmount: 5000,
+          status: 'completed',
+          progress: 100,
+          dueDate: '2026-03-30',
+          createdAt: '2026-03-25'
+        },
+        {
+          id: '5',
+          orderNumber: 'ORD-202404005',
+          clientName: '刘先生',
+          serviceName: '插画设计',
+          totalAmount: 3000,
+          status: 'draft',
+          progress: 10,
+          dueDate: '2026-04-15',
+          createdAt: '2026-04-03'
+        }
+      ];
+    }
+    
+    // 更新统计数据
+    function updateStats(orders) {
+      const totalOrders = orders.length;
+      const processingOrders = orders.filter(order => order.status === 'processing').length;
+      const pendingOrders = orders.filter(order => order.status === 'pending').length;
+      const totalAmount = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+      
+      document.getElementById('totalOrders').textContent = totalOrders;
+      document.getElementById('processingOrders').textContent = processingOrders;
+      document.getElementById('pendingOrders').textContent = pendingOrders;
+      document.getElementById('totalAmount').textContent = totalAmount.toLocaleString();
+    }
+    
+    // 渲染订单列表
+    function renderOrders(orders) {
+      const container = document.getElementById('ordersContainer');
+      const body = document.getElementById('ordersBody');
+      
+      if (!orders || orders.length === 0) {
+        body.innerHTML = '<div class="table-row" style="text-align: center; padding: 40px; color: #86909C; grid-column: 1 / -1;">暂无订单数据</div>';
+        container.style.display = 'block';
+        document.getElementById('pagination').style.display = 'none';
+        return;
+      }
+      
+      // 分页处理
+      const filtered = getFilteredOrders();
+      const totalPages = Math.ceil(filtered.length / pageSize);
+      const startIndex = (currentPage - 1) * pageSize;
+      const paginated = filtered.slice(startIndex, startIndex + pageSize);
+      
+      let html = '';
+      
+      paginated.forEach(order => {
+        const statusClass = `status-${order.status}`;
+        const statusText = getStatusText(order.status);
+        
+        html += `
+          <div class="table-row">
+            <div class="order-number">${order.orderNumber || 'ORD-' + order.id.slice(-6)}</div>
+            <div class="order-client">${escapeHtml(order.clientName || '未知客户')}</div>
+            <div class="order-service">${escapeHtml(order.serviceName || '未知服务')}</div>
+            <div class="order-amount">¥${order.totalAmount?.toLocaleString() || '0'}</div>
+            <div>
+              <div><span class="status-badge ${statusClass}">${statusText}</span></div>
+              ${order.progress > 0 ? `<div class="progress-bar"><div class="progress-fill" style="width: ${order.progress}%"></div></div>` : ''}
+            </div>
+            <div>
+              <button class="action-btn" onclick="viewOrder('${order.id}')">查看</button>
+            </div>
+          </div>
+        `;
+      });
+      
+      body.innerHTML = html;
+      container.style.display = 'block';
+      updatePagination(filtered.length);
+    }
+    
+    // 获取筛选后的订单
+    function getFilteredOrders() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const status = document.getElementById('statusFilter').value;
+      const dateFilter = document.getElementById('dateFilter').value;
+      
+      return allOrders.filter(order => {
+        const matchesSearch = !search ||

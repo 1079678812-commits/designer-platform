@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>登录测试</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    input, button { padding: 10px; margin: 5px; }
+    .error { color: red; }
+    .success { color: green; }
+  </style>
+</head>
+<body>
+  <h1>直接登录测试</h1>
+  <div>
+    <input id="email" type="email" placeholder="邮箱" value="designer@test.com">
+    <input id="password" type="password" placeholder="密码" value="123456">
+    <button onclick="login()">登录</button>
+  </div>
+  <div id="result"></div>
+  
+  <script>
+    async function login() {
+      const email = document.getElementById('email').value
+      const password = document.getElementById('password').value
+      const result = document.getElementById('result')
+      
+      result.innerHTML = '登录中...'
+      result.className = ''
+      
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        })
+        
+        const data = await response.json()
+        
+        if (response.ok && data.success) {
+          result.innerHTML = '✅ 登录成功！3秒后跳转...'
+          result.className = 'success'
+          setTimeout(() => {
+            window.location.href = '/services'
+          }, 3000)
+        } else {
+          result.innerHTML = '❌ 登录失败: ' + (data.error || '未知错误')
+          result.className = 'error'
+        }
+      } catch (error) {
+        result.innerHTML = '❌ 网络错误: ' + error.message
+        result.className = 'error'
+      }
+    }
+    
+    // 自动登录测试
+    setTimeout(() => {
+      console.log('自动登录测试...')
+      login()
+    }, 1000)
+  </script>
+</body>
+</html>

@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>仪表盘 - 设计师接单平台</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { background: #F5F6FA; min-height: 100vh; }
+    
+    .container { max-width: 1200px; }
+    
+    .header { text-align: center; margin-bottom: 30px; padding: 20px; }
+    .title { font-size: 28px; font-weight: 700; color: #1D2129; margin-bottom: 8px; }
+    .subtitle { font-size: 16px; color: #86909C; }
+    
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 30px; }
+    .stat-card { background: white; border: 1px solid #E5E6EB; border-radius: 12px; padding: 20px; text-align: center; }
+    .stat-label { font-size: 14px; color: #86909C; margin-bottom: 8px; }
+    .stat-value { font-size: 24px; font-weight: 700; color: #00B578; }
+    
+    .quick-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 30px; }
+    .action-btn { background: white; border: 1px solid #E5E6EB; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; }
+    .action-btn:hover { background: #F5F6FA; border-color: #00B578; }
+    .action-icon { font-size: 24px; margin-bottom: 8px; }
+    .action-text { font-size: 14px; color: #1D2129; font-weight: 500; }
+    
+    .recent-orders { background: white; border: 1px solid #E5E6EB; border-radius: 12px; padding: 20px; margin-bottom: 30px; }
+    .section-title { font-size: 18px; font-weight: 600; color: #1D2129; margin-bottom: 16px; }
+    
+    .orders-table { width: 100%; border-collapse: collapse; }
+    .orders-table th { text-align: left; padding: 12px 16px; border-bottom: 1px solid #E5E6EB; color: #86909C; font-weight: 500; font-size: 14px; }
+    .orders-table td { padding: 12px 16px; border-bottom: 1px solid #E5E6EB; }
+    .orders-table tr:hover { background: #F5F6FA; }
+    
+    .order-status { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 500; }
+    .status-pending { background: rgba(0, 181, 120, 0.1); color: #00B578; }
+    .status-processing { background: rgba(255, 125, 0, 0.1); color: #FF7D00; }
+    .status-completed { background: rgba(0, 181, 120, 0.1); color: #00B578; }
+    
+    .loading { text-align: center; padding: 60px; }
+    .spinner { width: 48px; height: 48px; border: 4px solid #E5E6EB; border-top-color: #00B578; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    .error { background: #FFF2F0; border: 1px solid #FFCCC7; color: #FF4D4F; padding: 16px; border-radius: 8px; margin-bottom: 20px; }
+    
+    
+    .nav-link { color: #00B578; text-decoration: none; padding: 8px 16px; border-radius: 8px; }
+    .nav-link:hover { background: rgba(0, 181, 120, 0.1); }
+    
+    @media (max-width: 768px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .quick-actions { grid-template-columns: repeat(2, 1fr); }
+      .orders-table { display: block; overflow-x: auto; }
+    }
+      /* 左侧导航 */
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 240px;
+      height: 100vh;
+      background: white;
+      border-right: 1px solid #E5E6EB;
+      padding: 20px;
+      overflow-y: auto;
+      z-index: 1000;
+    }
+    
+    .sidebar-header {
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #E5E6EB;
+    }
+    
+    .sidebar-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1D2129;
+      margin-bottom: 4px;
+    }
+    
+    .sidebar-subtitle {
+      font-size: 12px;
+      color: #86909C;
+    }
+    
+    .nav-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      color: #1D2129;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    
+    .nav-link:hover {
+      background: #F5F6FA;
+      color: #00B578;
+    }
+    
+    .nav-link.active {
+      background: rgba(0, 181, 120, 0.1);
+      color: #00B578;
+      font-weight: 500;
+    }
+    
+    .nav-icon {
+      font-size: 18px;
+      width: 24px;
+      text-align: center;
+    }
+    
+    .nav-text {
+      font-size: 14px;
+    }
+    
+    /* 主内容区域 */
+    .main-content {
+      margin-left: 240px;
+      padding: 20px;
+    }
+    
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 200px;
+        transform: translateX(-100%);
+        transition: transform 0.3s;
+      }
+      
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      
+      .main-content {
+        margin-left: 0;
+      }
+      
+      .mobile-menu-btn {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 1001;
+        background: white;
+        border: 1px solid #E5E6EB;
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+    }
+  </style>
+</head>
+<body>
+    <!-- 左侧导航 -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">设计师平台</div>
+        <div class="sidebar-subtitle">管理您的设计业务</div>
+      </div>
+      
+      <div class="nav-menu">
+        <a href="/dashboard-simple.html" class="nav-link active">
+          <div class="nav-icon">📊</div>
+          <div class="nav-text">仪表盘</div>
+        </a>
+        <a href="/services-simple.html" class="nav-link ">
+          <div class="nav-icon">🛠️</div>
+          <div class="nav-text">服务管理</div>
+        </a>
+        <a href="/clients-simple.html" class="nav-link ">
+          <div class="nav-icon">👥</div>
+          <div class="nav-text">客户管理</div>
+        </a>
+        <a href="/orders-simple.html" class="nav-link ">
+          <div class="nav-icon">📦</div>
+          <div class="nav-text">订单管理</div>
+        </a>
+        <a href="/contracts-simple.html" class="nav-link ">
+          <div class="nav-icon">📝</div>
+          <div class="nav-text">合同管理</div>
+        </a>
+        <a href="/invoices-simple.html" class="nav-link ">
+          <div class="nav-icon">🧾</div>
+          <div class="nav-text">发票管理</div>
+        </a>
+        <a href="/analytics-simple.html" class="nav-link ">
+          <div class="nav-icon">📈</div>
+          <div class="nav-text">数据分析</div>
+        </a>
+        <a href="/notifications-simple.html" class="nav-link ">
+          <div class="nav-icon">🔔</div>
+          <div class="nav-text">通知中心</div>
+        </a>
+        <a href="/settings-simple.html" class="nav-link ">
+          <div class="nav-icon">⚙️</div>
+          <div class="nav-text">系统设置</div>
+        </a>
+        <a href="/kanban-simple.html" class="nav-link ">
+          <div class="nav-icon">📋</div>
+          <div class="nav-text">项目管理</div>
+        </a>
+      </div>
+    </div>
+    
+    <!-- 移动端菜单按钮 -->
+    <button class="mobile-menu-btn" id="mobileMenuBtn" style="display: none;">☰</button>
+    
+    <!-- 主内容 -->
+    <div class="main-content">
+    <div class="container">
+    <!-- 标题 -->
+    <div class="header">
+      <h1 class="title">仪表盘</h1>
+      <p class="subtitle">数据概览和统计信息</p>
+    </div>
+    
+    <!-- 错误消息 -->
+    <div id="errorMessage" class="error" style="display: none;"></div>
+    
+    <!-- 统计 -->
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">总收入</div>
+        <div class="stat-value">¥<span id="totalRevenue">0</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">总订单</div>
+        <div class="stat-value" id="totalOrders">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">进行中</div>
+        <div class="stat-value" id="processingOrders">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">客户数</div>
+        <div class="stat-value" id="totalClients">0</div>
+      </div>
+    </div>
+    
+    <!-- 快速操作 -->
+    <div class="quick-actions">
+      <div class="action-btn" onclick="createNewService()">
+        <div class="action-icon">🛠️</div>
+        <div class="action-text">新建服务</div>
+      </div>
+      <div class="action-btn" onclick="addNewClient()">
+        <div class="action-icon">👥</div>
+        <div class="action-text">添加客户</div>
+      </div>
+      <div class="action-btn" onclick="createInvoice()">
+        <div class="action-icon">🧾</div>
+        <div class="action-text">创建发票</div>
+      </div>
+      <div class="action-btn" onclick="viewAnalytics()">
+        <div class="action-icon">📈</div>
+        <div class="action-text">查看分析</div>
+      </div>
+    </div>
+    
+    <!-- 最近订单 -->
+    <div class="recent-orders">
+      <h2 class="section-title">最近订单</h2>
+      <div id="loadingOrders" class="loading">
+        <div class="spinner"></div>
+        <div>加载订单数据...</div>
+      </div>
+      <table class="orders-table" id="ordersTable" style="display: none;">
+        <thead>
+          <tr>
+            <th>订单号</th>
+            <th>客户</th>
+            <th>服务</th>
+            <th>金额</th>
+            <th>状态</th>
+            <th>截止日期</th>
+          </tr>
+        </thead>
+        <tbody id="ordersBody">
+          <!-- 订单数据将通过JavaScript填充 -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // 全局变量
+    let allOrders = [];
+    
+    // 页面加载时初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      loadDashboardData();
+    });
+    
+    // 加载仪表盘数据
+    async function loadDashboardData() {
+      try {
+        // 模拟数据（当API不可用时）
+        const useMockData = localStorage.getItem('useMockData') === 'true' || window.location.search.includes('mock=true');
+        if (useMockData) {
+          console.log('使用模拟数据');
+          const mockData = getMockOrders();
+          updateStats(mockData);
+          renderOrders(mockData);
+          document.getElementById('loadingOrders').style.display = 'none';
+          document.getElementById('ordersTable').style.display = 'table';
+          return;
+        }
+        
+        // 实际项目中这里会调用API
+        // const response = await fetch('/api/dashboard');
+        // const data = await response.json();
+        // updateStats(data);
+        // renderOrders(data.recentOrders);
+        
+      } catch (error) {
+        // 使用模拟数据作为后备
+        const mockData = getMockOrders();
+        updateStats(mockData);
+        renderOrders(mockData);
+      } finally {
+        document.getElementById('loadingOrders').style.display = 'none';
+        document.getElementById('ordersTable').style.display = 'table';
+      }
+    }
+    
+    // 更新统计数据
+    function updateStats(orders) {
+      const totalRevenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+      const totalOrders = orders.length;
+      const processingOrders = orders.filter(order => order.status === 'processing').length;
+      const uniqueClients = [...new Set(orders.map(order => order.clientName))].length;
+      
+      document.getElementById('totalRevenue').textContent = totalRevenue.toLocaleString();
+      document.getElementById('totalOrders').textContent = totalOrders;
+      document.getElementById('processingOrders').textContent = processingOrders;
+      document.getElementById('totalClients').textContent = uniqueClients;
+    }
+    
+    // 渲染订单表格
+    function renderOrders(orders) {
+      const tbody = document.getElementById('ordersBody');
+      
+      if (!orders || orders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: #86909C;">暂无订单数据</td></tr>';
+        return;
+      }
+      
+      let html = '';
+      
+      orders.forEach(order => {
+        const statusClass = order.status === 'pending' ? 'status-pending' :
+                          order.status === 'processing' ? 'status-processing' : 'status-completed';
+        const statusText = order.status === 'pending' ? '待处理' :
+                          order.status === 'processing' ? '进行中' : '已完成';
+        
+        html += `
+          <tr>
+            <td>${order.orderNumber || 'ORD-' + order.id.slice(-6)}</td>
+            <td>${escapeHtml(order.clientName || '未知客户')}</td>
+            <td>${escapeHtml(order.serviceName || '未知服务')}</td>
+            <td>¥${order.totalAmount?.toLocaleString() || '0'}</td>
+            <td><span class="order-status ${statusClass}">${statusText}</span></td>
+            <td>${formatDate(order.dueDate)}</td>
+          </tr>
+        `;
+      });
+      
+      tbody.innerHTML = html;
+    }
+    
+    // 模拟订单数据（API失败时使用）
+    function getMockOrders() {
+      return [
+        {
+          id: '1',
+          orderNumber: 'ORD-20240401',
+          clientName: '张先生',
+          serviceName: '品牌设计',
+          totalAmount: 12000,
+          status: 'processing',
+          dueDate: '2026-04-10'
+        },
+        {
+          id: '2',
+          orderNumber: 'ORD-20240402',
+          clientName: '李女士',
+          serviceName: 'UI设计',
+          totalAmount: 8000,
+          status: 'pending',
+          dueDate: '2026-04-12'
+        },
+        {
+          id: '3',
+          orderNumber: 'ORD-20240403',
+          clientName: '王先生',
+          serviceName: '网站设计',
+          totalAmount: 15000,
+          status: 'completed',
+          dueDate: '2026-04-05'
+        }
+      ];
+    }
+    
+    // 快速操作函数
+    function createNewService() {
+      alert('跳转到新建服务页面');
+      window.location.href = '/services-simple.html?action=create';
+    }
+    
+    function addNewClient() {
+      alert('跳转到添加客户页面');
+      window.location.href = '/clients-simple.html?action=create';
+    }
+    
+    function createInvoice() {
+      alert('跳转到创建发票页面');
+      window.location.href = '/invoices-simple.html?action=create';
+    }
+    
+    function viewAnalytics() {
+      alert('跳转到数据分析页面');
+      window.location.href = '/analytics-simple.html';
+    }
+    
+    // 工具函数
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    function formatDate(dateString) {
+      if (!dateString) return '未设置';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('zh-CN');
+    }
+    
+    function showError(message) {
+      const errorDiv = document.getElementById('errorMessage');
+      errorDiv.textContent = message;
+      errorDiv.style.display = 'block';
+      setTimeout(() => {
+        errorDiv.style.display = 'none';
+      }, 5000);
+    }
+  </script>
+  <script>
+    // 移动端菜单切换
+    document.addEventListener('DOMContentLoaded', () => {
+      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+      const sidebar = document.getElementById('sidebar');
+      
+      if (mobileMenuBtn && sidebar) {
+        // 检查是否为移动端
+        const isMobile = window.innerWidth <= 768;
+        if (isMobile) {
+          mobileMenuBtn.style.display = 'block';
+          
+          mobileMenuBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+          });
+          
+          // 点击内容区域关闭菜单
+          document.querySelector('.main-content').addEventListener('click', () => {
+            if (sidebar.classList.contains('open')) {
+              sidebar.classList.remove('open');
+            }
+          });
+        }
+      }
+      
+      // 设置当前页面激活状态
+      const currentPage = window.location.pathname.split('/').pop() || 'dashboard-simple.html';
+      const navLinks = document.querySelectorAll('.nav-link');
+      
+      navLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && href.includes(currentPage)) {
+          link.classList.add('active');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

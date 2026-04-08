@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>登录页面诊断</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    
+    body {
+      background-color: #F5F6FA;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      padding: 32px;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #E5E6EB;
+    }
+    
+    .title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1D2129;
+      margin-bottom: 8px;
+    }
+    
+    .subtitle {
+      font-size: 16px;
+      color: #86909C;
+    }
+    
+    .diagnostic-section {
+      margin-bottom: 32px;
+      padding: 24px;
+      border-radius: 12px;
+      background: #F5F6FA;
+    }
+    
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1D2129;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .section-title::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #00B578;
+      margin-right: 12px;
+    }
+    
+    .test-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: white;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border: 1px solid #E5E6EB;
+    }
+    
+    .test-name {
+      font-size: 14px;
+      color: #1D2129;
+    }
+    
+    .test-result {
+      font-size: 14px;
+      font-weight: 500;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+    
+    .result-pass {
+      background: rgba(0, 181, 120, 0.1);
+      color: #00B578;
+    }
+    
+    .result-fail {
+      background: rgba(255, 77, 79, 0.1);
+      color: #FF4D4F;
+    }
+    
+    .result-warning {
+      background: rgba(255, 125, 0, 0.1);
+      color: #FF7D00;
+    }
+    
+    .details {
+      margin-top: 8px;
+      padding: 12px;
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #E5E6EB;
+      font-size: 12px;
+      color: #86909C;
+      font-family: 'Monaco', 'Menlo', monospace;
+      white-space: pre-wrap;
+      word-break: break-all;
+      display: none;
+    }
+    
+    .show-details {
+      color: #00B578;
+      text-decoration: none;
+      font-size: 12px;
+      cursor: pointer;
+      margin-left: 12px;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    
+    .btn {
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      flex: 1;
+    }
+    
+    .btn-primary {
+      background: #00B578;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #009A63;
+    }
+    
+    .btn-secondary {
+      background: white;
+      color: #00B578;
+      border: 1px solid #00B578;
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(0, 181, 120, 0.05);
+    }
+    
+    .log-output {
+      margin-top: 24px;
+      padding: 16px;
+      background: #1D2129;
+      border-radius: 8px;
+      color: #86909C;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+    
+    .log-entry {
+      margin-bottom: 4px;
+      padding: 4px;
+      border-left: 2px solid transparent;
+    }
+    
+    .log-info {
+      border-left-color: #00B578;
+      color: #00B578;
+    }
+    
+    .log-error {
+      border-left-color: #FF4D4F;
+      color: #FF4D4F;
+    }
+    
+    .log-warning {
+      border-left-color: #FF7D00;
+      color: #FF7D00;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 class="title">🔍 登录页面诊断工具</h1>
+      <p class="subtitle">检查登录页面无法正常显示的问题</p>
+    </div>
+    
+    <div class="diagnostic-section">
+      <h2 class="section-title">基本检查</h2>
+      
+      <div class="test-item">
+        <div class="test-name">1. 页面加载状态</div>
+        <div id="page-load-result" class="test-result result-warning">检查中...</div>
+      </div>
+      
+      <div class="test-item">
+        <div class="test-name">2. JavaScript执行</div>
+        <div id="js-execution-result" class="test-result result-warning">检查中...</div>
+      </div>
+      
+      <div class="test-item">
+        <div class="test-name">3. CSS样式加载</div>
+        <div id="css-load-result" class="test-result result-warning">检查中...</div>
+      </div>
+      
+      <div class="test-item">
+        <div class="test-name">4. 服务器响应</div>
+        <div id="server-response-result" class="test-result result-warning">检查中...</div>
+      </div>
+      
+      <div class="test-item">
+        <div class="test-name">5. API连接测试</div>
+        <div id="api-test-result" class="test-result result-warning">检查中...</div>
+      </div>
+    </div>
+    
+    <div class="diagnostic-section">
+      <h2 class="section-title">详细诊断</h2>
+      <div class="log-output" id="log-output">
+        // 诊断日志将显示在这里
+      </div>
+    </div>
+    
+    <div class="action-buttons">
+      <button class="btn btn-primary" onclick="runAllTests()">重新运行所有测试</button>
+      <button class="btn btn-secondary" onclick="window.location.href='login-final.html'">前往登录页面</button>
+      <button class="btn btn-secondary" onclick="window.location.href='test-simple.html'">测试简单页面</button>
+    </div>
+  </div>
+  
+  <script>
+    const logOutput = document.getElementById('log-output');
+    let logEntries = [];
+    
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const entry = `[${timestamp}] ${message}`;
+      logEntries.push({ message: entry, type });
+      
+      // 更新显示
+      logOutput.innerHTML = logEntries.map(entry => 
+        `<div class="log-entry log-${entry.type}">${entry.message}</div>`
+      ).join('');
+      
+      // 滚动到底部
+      logOutput.scrollTop = logOutput.scrollHeight;
+    }
+    
+    function updateTestResult(testId, result, message) {
+      const element = document.getElementById(testId);
+      element.textContent = message;
+      element.className = `test-result result-${result}`;
+      log(`测试 ${testId}: ${message}`, result);
+    }
+    
+    async function testPageLoad() {
+      try {
+        const response = await fetch('login-final.html');
+        if (response.ok) {
+          const text = await response.text();
+          const hasDoctype = text.includes('<!DOCTYPE');
+          const hasTitle = text.includes('设计师接单平台');
+          const hasForm = text.includes('<form') || text.includes('email');
+          
+          if (hasDoctype && hasTitle && hasForm) {
+            updateTestResult('page-load-result', 'pass', '✅ 页面加载正常');
+            log(`页面大小: ${text.length} 字节`, 'info');
+          } else {
+            updateTestResult('page-load-result', 'fail', '❌ 页面内容不完整');
+            log(`缺少必要元素: doctype=${hasDoctype}, title=${hasTitle}, form=${hasForm}`, 'error');
+          }
+        } else {
+          updateTestResult('page-load-result', 'fail', `❌ HTTP ${response.status}`);
+          log(`HTTP错误: ${response.status} ${response.statusText}`, 'error');
+        }
+      } catch (error) {
+        updateTestResult('page-load-result', 'fail', '❌ 网络错误');
+        log(`网络错误: ${error.message}`, 'error');
+      }
+    }
+    
+    function testJsExecution() {
+      try {
+        // 测试基本的JavaScript功能
+        const testElement = document.createElement('div');
+        testElement.style.display = 'none';
+        document.body.appendChild(testElement);
+        document.body.removeChild(testElement);
+        
+        // 测试更复杂的操作
+        const arr = [1, 2, 3];
+        const sum = arr.reduce((a, b) => a + b, 0);
+        
+        if (sum === 6) {
+          updateTestResult('js-execution-result', 'pass', '✅ JavaScript正常');
+          log('JavaScript引擎工作正常', 'info');
+        } else {
+          updateTestResult('js-execution-result', 'fail', '❌ JavaScript异常');
+          log('JavaScript计算错误', 'error');
+        }
+      } catch (error) {
+        updateTestResult('js-execution-result', 'fail', '❌ JavaScript错误');
+        log(`JavaScript错误: ${error.message}`, 'error');
+      }
+    }
+    
+    function testCssLoad() {
+      try {
+        // 检查CSS是否应用
+        const computedStyle = window.getComputedStyle(document.body);
+        const bgColor = computedStyle.backgroundColor;
+        
+        // 检查是否应用了我们的CSS
+        const container = document.querySelector('.container');
+        if (container) {
+          const containerStyle = window.getComputedStyle(container);
+          const hasBorderRadius = containerStyle.borderRadius !== '0px';
+          const hasBoxShadow = containerStyle.boxShadow !== 'none';
+          
+          if (hasBorderRadius && hasBoxShadow) {
+            updateTestResult('css-load-result', 'pass', '✅ CSS样式正常');
+            log('CSS样式已成功加载和应用', 'info');
+          } else {
+            updateTestResult('css-load-result', 'warning', '⚠️ 部分CSS未应用');
+            log(`CSS状态: borderRadius=${hasBorderRadius}, boxShadow=${hasBoxShadow}`, 'warning');
+          }
+        } else {
+          updateTestResult('css-load-result', 'fail', '❌ CSS选择器失败');
+          log('无法找到CSS选择器对应的元素', 'error');
+        }
+      } catch (error) {
+        updateTestResult('css-load-result', 'fail', '❌ CSS检查错误');
+        log(`CSS检查错误: ${error.message}`, 'error');
+      }
+    }
+    
+    async function testServerResponse() {
+      try {
+        const startTime = Date.now();
+        const response = await fetch('/');
+        const endTime = Date.now();
+        const responseTime = endTime - startTime;
+        
+        if (response.ok) {
+          updateTestResult('server-response-result', 'pass', `✅ 服务器正常 (${responseTime}ms)`);
+          log(`服务器响应时间: ${responseTime}ms, 状态: ${response.status}`, 'info');
+        } else {
+          updateTestResult('server-response-result', 'fail', `❌ 服务器错误 ${response.status}`);
+          log(`服务器错误: ${response.status} ${response.statusText}`, 'error');
+        }
+      } catch (error) {
+        updateTestResult('server-response-result', 'fail', '❌ 服务器连接失败');
+        log(`服务器连接失败: ${error.message}`, 'error');
+      }
+    }
+    
+    async function testApiConnection() {
+      try {
+        const response = await fetch('/api/data?type=test');
+        
+        if (response.ok) {
+          const data = await response.json().catch(() => ({}));
+          updateTestResult('api-test-result', 'pass', '✅ API连接正常');
+          log(`API响应: ${response.status}, 数据: ${JSON.stringify(data).substring(0, 100)}...`, 'info');
+        } else if (response.status === 404) {
+          updateTestResult('api-test-result', 'warning', '⚠️ API路由不存在');
+          log(`API路由不存在 (404)，但这是预期的（使用模拟数据模式）`, 'warning');
+        } else {
+          updateTestResult('api-test-result', 'fail', `❌ API错误 ${response.status}`);
+          log(`API错误: ${response.status} ${response.statusText}`, 'error');
+        }
+      } catch (error) {
+        updateTestResult('api-test-result', 'warning', '⚠️ API连接失败');
+        log(`API连接失败（可能使用模拟数据）: ${error.message}`, 'warning');
+      }
+    }
+    
+    async function runAllTests() {
+      logEntries = [];
+      logOutput.innerHTML = '// 开始诊断...';
+      
+      log('开始运行所有诊断测试...', 'info');
+      
+      // 依次运行测试
+      await testPageLoad();
+      testJsExecution();
+      testCssLoad();
+      await testServerResponse();
+      await testApiConnection();
+      
+      log('所有诊断测试完成', 'info');
+      
+      // 总结
+      const passCount = document.querySelectorAll('.result-pass').length;
+      const totalCount = 5;
+      
+      if (passCount === totalCount) {
+        log(`🎉 所有测试通过 (${passCount}/${totalCount})`, 'info');
+      } else {
+        log(`⚠️ 测试结果: ${passCount}/${totalCount} 通过`, 'warning');
+      }
+    }
+    
+    // 页面加载时自动运行测试
+    window.addEventListener('load', () => {
+      setTimeout(runAllTests, 500);
+    });
+  </script>
+</body>
+</html>

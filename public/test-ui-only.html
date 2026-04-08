@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UI测试 - 设计师接单平台</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { background: #F5F6FA; min-height: 100vh; padding: 20px; }
+    
+    .container { max-width: 1200px; margin: 0 auto; }
+    
+    .title { font-size: 28px; font-weight: 700; color: #1D2129; margin-bottom: 30px; text-align: center; }
+    
+    .pages-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+    .page-card { background: white; border: 1px solid #E5E6EB; border-radius: 12px; padding: 24px; text-align: center; }
+    .page-icon { font-size: 32px; margin-bottom: 12px; }
+    .page-name { font-size: 18px; font-weight: 600; color: #1D2129; margin-bottom: 8px; }
+    .page-desc { font-size: 14px; color: #86909C; margin-bottom: 16px; }
+    .page-link { display: inline-block; padding: 8px 16px; background: #00B578; color: white; border-radius: 6px; text-decoration: none; font-size: 14px; }
+    .page-link:hover { background: #009A63; }
+    
+    .test-mode { background: #FFF2F0; border: 1px solid #FFCCC7; border-radius: 12px; padding: 20px; margin-bottom: 30px; }
+    .test-title { font-size: 18px; font-weight: 600; color: #FF4D4F; margin-bottom: 12px; }
+    .test-desc { font-size: 14px; color: #FF4D4F; margin-bottom: 16px; }
+    .test-btn { padding: 10px 20px; background: #FF4D4F; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; }
+    .test-btn:hover { background: #E64244; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="title">设计师平台 - UI测试</h1>
+    
+    <div class="test-mode">
+      <h2 class="test-title">测试模式</h2>
+      <p class="test-desc">由于API session问题，页面可能无法加载真实数据。点击下方按钮启用模拟数据模式。</p>
+      <button class="test-btn" onclick="enableMockData()">启用模拟数据</button>
+    </div>
+    
+    <div class="pages-grid">
+      <div class="page-card">
+        <div class="page-icon">📊</div>
+        <div class="page-name">仪表盘</div>
+        <div class="page-desc">数据概览和统计信息</div>
+        <a href="dashboard-simple.html" class="page-link">打开页面</a>
+      </div>
+      
+      <div class="page-card">
+        <div class="page-icon">🛠️</div>
+        <div class="page-name">服务管理</div>
+        <div class="page-desc">管理您的设计服务项目</div>
+        <a href="services-simple.html" class="page-link">打开页面</a>
+      </div>
+      
+      <div class="page-card">
+        <div class="page-icon">👥</div>
+        <div class="page-name">客户管理</div>
+        <div class="page-desc">管理客户信息和联系方式</div>
+        <a href="clients-simple.html" class="page-link">打开页面</a>
+      </div>
+      
+      <div class="page-card">
+        <div class="page-icon">📦</div>
+        <div class="page-name">订单管理</div>
+        <div class="page-desc">处理客户订单和交付</div>
+        <a href="orders-simple.html" class="page-link">打开页面</a>
+      </div>
+      
+      <div class="page-card">
+        <div class="page-icon">📝</div>
+        <div class="page-name">合同管理</div>
+        <div class="page-desc">管理设计服务合同</div>
+        <a href="contracts-simple.html" class="page-link">打开页面</a>
+      </div>
+      
+      <div class="page-card">
+        <div class="page-icon">🧾</div>
+        <div class="page-name">发票管理</div>
+        <div class="page-desc">管理发票和财务记录</div>
+        <a href="invoices-simple.html" class="page-link">打开页面</a>
+      </div>
+      
+      <div class="page-card">
+        <div class="page-icon">📈</div>
+        <div class="page-name">数据分析</div>
+        <div class="page-desc">业务分析和数据洞察</div>
+        <a href="analytics-simple.html" class="page-link">打开页面</a>
+      </div>
+      
+      <div class="page-card">
+        <div class="page-icon">🔔</div>
+        <div class="page-name">通知中心</div>
+        <div class="page-desc">查看和管理系统通知</div>
+        <a href="notifications-simple.html" class="page-link">打开页面</a>
+      </div>
+      
+      <div class="page-card">
+        <div class="page-icon">⚙️</div>
+        <div class="page-name">系统设置</div>
+        <div class="page-desc">账户设置和偏好配置</div>
+        <a href="settings-simple.html" class="page-link">打开页面</a>
+      </div>
+      
+      <div class="page-card">
+        <div class="page-icon">📋</div>
+        <div class="page-name">项目管理</div>
+        <div class="page-desc">项目进度和任务管理</div>
+        <a href="kanban-simple.html" class="page-link">打开页面</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function enableMockData() {
+      // 设置一个标记，让页面知道使用模拟数据
+      localStorage.setItem('useMockData', 'true');
+      alert('已启用模拟数据模式！刷新页面后生效。');
+      
+      // 重新加载所有页面链接
+      document.querySelectorAll('.page-link').forEach(link => {
+        const href = link.getAttribute('href');
+        link.setAttribute('href', href + '?mock=true');
+      });
+    }
+    
+    // 检查是否已经启用模拟数据
+    if (localStorage.getItem('useMockData') === 'true') {
+      document.querySelector('.test-desc').textContent = '模拟数据模式已启用。页面将显示示例数据。';
+    }
+  </script>
+</body>
+</html>

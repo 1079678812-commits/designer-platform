@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>API测试</title>
+</head>
+<body>
+  <h1>API测试页面</h1>
+  <button onclick="testAPI()">测试 /api/services</button>
+  <div id="result"></div>
+  
+  <script>
+    async function testAPI() {
+      const result = document.getElementById('result')
+      result.innerHTML = '测试中...'
+      
+      try {
+        const response = await fetch('/api/services')
+        const data = await response.json()
+        
+        result.innerHTML = `
+          <h3>状态: ${response.status}</h3>
+          <p>成功: ${data.success}</p>
+          <p>数据数量: ${data.data?.length || 0}</p>
+          <pre>${JSON.stringify(data, null, 2)}</pre>
+        `
+      } catch (error) {
+        result.innerHTML = `错误: ${error.message}`
+      }
+    }
+    
+    // 自动测试
+    setTimeout(testAPI, 1000)
+  </script>
+</body>
+</html>

@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>我的服务 - 设计师接单平台</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { background: #F5F6FA; min-height: 100vh; }
+    
+    .container { max-width: 1200px; }
+    
+    .header { text-align: center; margin-bottom: 30px; padding: 20px; }
+    .title { font-size: 28px; font-weight: 700; color: #1D2129; margin-bottom: 8px; }
+    .subtitle { font-size: 16px; color: #86909C; }
+    
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 30px; }
+    .stat-card { background: white; border: 1px solid #E5E6EB; border-radius: 12px; padding: 20px; text-align: center; }
+    .stat-label { font-size: 14px; color: #86909C; margin-bottom: 8px; }
+    .stat-value { font-size: 24px; font-weight: 700; color: #00B578; }
+    
+    .controls { background: white; border: 1px solid #E5E6EB; border-radius: 12px; padding: 20px; margin-bottom: 30px; display: flex; gap: 16px; flex-wrap: wrap; }
+    .search-input { flex: 1; min-width: 200px; padding: 12px 16px; border: 1px solid #E5E6EB; border-radius: 8px; font-size: 14px; }
+    .filter-select { padding: 12px 16px; border: 1px solid #E5E6EB; border-radius: 8px; font-size: 14px; min-width: 120px; }
+    .add-btn { background: #00B578; color: white; border: none; border-radius: 8px; padding: 12px 20px; font-size: 14px; font-weight: 500; cursor: pointer; }
+    
+    .services-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+    .service-card { background: white; border: 1px solid #E5E6EB; border-radius: 12px; padding: 20px; }
+    .service-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .service-name { font-size: 16px; font-weight: 600; color: #1D2129; }
+    .service-status { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 500; }
+    .status-active { background: rgba(0, 181, 120, 0.1); color: #00B578; }
+    .status-inactive { background: rgba(255, 77, 79, 0.1); color: #FF4D4F; }
+    .status-draft { background: rgba(255, 125, 0, 0.1); color: #FF7D00; }
+    
+    .service-description { color: #86909C; font-size: 14px; line-height: 1.5; margin-bottom: 16px; }
+    .service-footer { display: flex; justify-content: space-between; align-items: center; }
+    .service-price { font-size: 18px; font-weight: 700; color: #1D2129; }
+    .service-meta { color: #86909C; font-size: 12px; }
+    
+    .loading { text-align: center; padding: 60px; }
+    .spinner { width: 48px; height: 48px; border: 4px solid #E5E6EB; border-top-color: #00B578; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    .error { background: #FFF2F0; border: 1px solid #FFCCC7; color: #FF4D4F; padding: 16px; border-radius: 8px; margin-bottom: 20px; }
+    
+    
+    .nav-link { color: #00B578; text-decoration: none; padding: 8px 16px; border-radius: 8px; }
+    .nav-link:hover { background: rgba(0, 181, 120, 0.1); }
+    
+    @media (max-width: 768px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .services-list { grid-template-columns: 1fr; }
+      .controls { flex-direction: column; }
+    }
+      /* 左侧导航 */
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 240px;
+      height: 100vh;
+      background: white;
+      border-right: 1px solid #E5E6EB;
+      padding: 20px;
+      overflow-y: auto;
+      z-index: 1000;
+    }
+    
+    .sidebar-header {
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #E5E6EB;
+    }
+    
+    .sidebar-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1D2129;
+      margin-bottom: 4px;
+    }
+    
+    .sidebar-subtitle {
+      font-size: 12px;
+      color: #86909C;
+    }
+    
+    .nav-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      color: #1D2129;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    
+    .nav-link:hover {
+      background: #F5F6FA;
+      color: #00B578;
+    }
+    
+    .nav-link.active {
+      background: rgba(0, 181, 120, 0.1);
+      color: #00B578;
+      font-weight: 500;
+    }
+    
+    .nav-icon {
+      font-size: 18px;
+      width: 24px;
+      text-align: center;
+    }
+    
+    .nav-text {
+      font-size: 14px;
+    }
+    
+    /* 主内容区域 */
+    .main-content {
+      margin-left: 240px;
+      padding: 20px;
+    }
+    
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 200px;
+        transform: translateX(-100%);
+        transition: transform 0.3s;
+      }
+      
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      
+      .main-content {
+        margin-left: 0;
+      }
+      
+      .mobile-menu-btn {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 1001;
+        background: white;
+        border: 1px solid #E5E6EB;
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+    }
+  </style>
+</head>
+<body>
+    <!-- 左侧导航 -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">设计师平台</div>
+        <div class="sidebar-subtitle">管理您的设计业务</div>
+      </div>
+      
+      <div class="nav-menu">
+        <a href="/dashboard-simple.html" class="nav-link ">
+          <div class="nav-icon">📊</div>
+          <div class="nav-text">仪表盘</div>
+        </a>
+        <a href="/services-simple.html" class="nav-link active">
+          <div class="nav-icon">🛠️</div>
+          <div class="nav-text">服务管理</div>
+        </a>
+        <a href="/clients-simple.html" class="nav-link ">
+          <div class="nav-icon">👥</div>
+          <div class="nav-text">客户管理</div>
+        </a>
+        <a href="/orders-simple.html" class="nav-link ">
+          <div class="nav-icon">📦</div>
+          <div class="nav-text">订单管理</div>
+        </a>
+        <a href="/contracts-simple.html" class="nav-link ">
+          <div class="nav-icon">📝</div>
+          <div class="nav-text">合同管理</div>
+        </a>
+        <a href="/invoices-simple.html" class="nav-link ">
+          <div class="nav-icon">🧾</div>
+          <div class="nav-text">发票管理</div>
+        </a>
+        <a href="/analytics-simple.html" class="nav-link ">
+          <div class="nav-icon">📈</div>
+          <div class="nav-text">数据分析</div>
+        </a>
+        <a href="/notifications-simple.html" class="nav-link ">
+          <div class="nav-icon">🔔</div>
+          <div class="nav-text">通知中心</div>
+        </a>
+        <a href="/settings-simple.html" class="nav-link ">
+          <div class="nav-icon">⚙️</div>
+          <div class="nav-text">系统设置</div>
+        </a>
+        <a href="/kanban-simple.html" class="nav-link ">
+          <div class="nav-icon">📋</div>
+          <div class="nav-text">项目管理</div>
+        </a>
+      </div>
+    </div>
+    
+    <!-- 移动端菜单按钮 -->
+    <button class="mobile-menu-btn" id="mobileMenuBtn" style="display: none;">☰</button>
+    
+    <!-- 主内容 -->
+    <div class="main-content">
+    <div class="container">
+    <!-- 标题 -->
+    <div class="header">
+      <h1 class="title">我的服务</h1>
+      <p class="subtitle">管理您的设计服务项目</p>
+    </div>
+    
+    <!-- 错误消息 -->
+    <div id="errorMessage" class="error" style="display: none;"></div>
+    
+    <!-- 统计 -->
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">总服务数</div>
+        <div class="stat-value" id="totalServices">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">已上架</div>
+        <div class="stat-value" id="activeServices">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">总收入</div>
+        <div class="stat-value">¥<span id="totalRevenue">0</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">平均评分</div>
+        <div class="stat-value" id="avgRating">0.0</div>
+      </div>
+    </div>
+    
+    <!-- 控制栏 -->
+    <div class="controls">
+      <input type="text" class="search-input" id="searchInput" placeholder="搜索服务...">
+      <select class="filter-select" id="categoryFilter">
+        <option value="">所有分类</option>
+        <option value="品牌设计">品牌设计</option>
+        <option value="界面设计">界面设计</option>
+        <option value="平面设计">平面设计</option>
+      </select>
+      <select class="filter-select" id="statusFilter">
+        <option value="">所有状态</option>
+        <option value="active">已上架</option>
+        <option value="inactive">已下架</option>
+        <option value="draft">草稿</option>
+      </select>
+      <button class="add-btn" onclick="addNewService()">+ 新建服务</button>
+    </div>
+    
+    <!-- 加载状态 -->
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>加载服务数据中...</p>
+    </div>
+    
+    <!-- 服务列表 -->
+    <div id="servicesContainer" class="services-list" style="display: none;"></div>
+  </div>
+  
+  <script>
+    let allServices = []
+    
+    // 页面加载
+    document.addEventListener('DOMContentLoaded', function() {
+      loadServices()
+      document.getElementById('searchInput').addEventListener('input', filterServices)
+      document.getElementById('categoryFilter').addEventListener('change', filterServices)
+      document.getElementById('statusFilter').addEventListener('change', filterServices)
+    })
+    
+    // 加载服务
+    async function loadServices() {
+      try {
+
+      // 模拟数据（当API不可用时）
+      const useMockData = localStorage.getItem('useMockData') === 'true' || window.location.search.includes('mock=true');
+      if (useMockData) {
+        console.log('使用模拟数据');
+        const mockData = [
+  {
+    "id": "1",
+    "name": "网站设计",
+    "description": "企业官网设计开发",
+    "price": 5000,
+    "category": "网站设计",
+    "status": "active",
+    "rating": 4.8,
+    "createdAt": "2026-03-15"
+  },
+  {
+    "id": "2",
+    "name": "UI设计",
+    "description": "移动端应用界面设计",
+    "price": 3000,
+    "category": "UI设计",
+    "status": "active",
+    "rating": 4.9,
+    "createdAt": "2026-03-20"
+  },
+  {
+    "id": "3",
+    "name": "品牌设计",
+    "description": "企业品牌形象设计",
+    "price": 8000,
+    "category": "品牌设计",
+    "status": "draft",
+    "rating": 4.7,
+    "createdAt": "2026-03-25"
+  },
+  {
+    "id": "4",
+    "name": "平面设计",
+    "description": "海报、宣传册设计",
+    "price": 2000,
+    "category": "平面设计",
+    "status": "active",
+    "rating": 4.6,
+    "createdAt": "2026-03-28"
+  }
+];
+        updateStats(mockData);
+        renderServices(mockData);
+        showLoading(false);
+        return;
+      }
+      
+        showLoading(true)
+        
+        const response = await fetch('/api/data?type=services')
+        if (!response.ok) throw new Error(`API错误: ${response.status}`)
+        
+        const result = await response.json()
+        
+        if (result.success && Array.isArray(result.data)) {
+          allServices = result.data
+          updateStats(allServices)
+          renderServices(allServices)
+          showLoading(false)
+        } else {
+          throw new Error('数据格式错误')
+        }
+      } catch (error) {
+        showError('加载失败: ' + error.message)
+        showLoading(false)
+      }
+    }
+    
+    // 更新统计
+    function updateStats(services) {
+      const total = services.length
+      const active = services.filter(s => s.status === 'active').length
+      const totalRevenue = services.reduce((sum, s) => sum + (s.price || 0), 0)
+      const avgRating = services.length > 0 
+        ? (services.reduce((sum, s) => sum + (s.rating || 0), 0) / services.length).toFixed(1)
+        : 0
+      
+      document.getElementById('totalServices').textContent = total
+      document.getElementById('activeServices').textContent = active
+      document.getElementById('totalRevenue').textContent = totalRevenue.toLocaleString()
+      document.getElementById('avgRating').textContent = avgRating
+    }
+    
+    // 渲染服务
+    function renderServices(services) {
+      const container = document.getElementById('servicesContainer')
+      
+      if (services.length === 0) {
+        container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #86909C;">暂无服务</div>'
+        container.style.display = 'grid'
+        return
+      }
+      
+      let html = ''
+      
+      services.forEach(service => {
+        const statusClass = service.status === 'active' ? 'status-active' :
+                          service.status === 'inactive' ? 'status-inactive' : 'status-draft'
+        const statusText = service.status === 'active' ? '已上架' :
+                          service.status === 'inactive' ? '已下架' : '草稿'
+        
+        html += `
+          <div class="service-card">
+            <div class="service-header">
+              <div class="service-name">${escapeHtml(service.name)}</div>
+              <div class="service-status ${statusClass}">${statusText}</div>
+            </div>
+            <div class="service-description">${escapeHtml(service.description || '暂无描述')}</div>
+            <div class="service-footer">
+              <div class="service-price">¥${service.price?.toLocaleString() || '0'}</div>
+              <div class="service-meta">
+                ${service.category || '未分类'} • 
+                评分: ${service.rating || 0} • 
+                ${formatDate(service.createdAt)}
+              </div>
+            </div>
+          </div>
+        `
+      })
+      
+      container.innerHTML = html
+      container.style.display = 'grid'
+    }
+    
+    // 过滤
+    function filterServices() {
+      const search = document.getElementById('searchInput').value.toLowerCase()
+      const category = document.getElementById('categoryFilter').value
+      const status = document.getElementById('statusFilter').value
+      
+      const filtered = allServices.filter(service => {
+        const matchesSearch = !search || 
+          service.name.toLowerCase().includes(search) || 
+          (service.description && service.description.toLowerCase().includes(search))
+        const matchesCategory = !category || service.category === category
+        const matchesStatus = !status || service.status === status
+        return matchesSearch && matchesCategory && matchesStatus
+      })
+      
+      renderServices(filtered)
+      updateStats(filtered)
+    }
+    
+    // 工具函数
+    function showLoading(show) {
+      document.getElementById('loading').style.display = show ? 'block' : 'none'
+      document.getElementById('servicesContainer').style.display = show ? 'none' : 'grid'
+    }
+    
+    function showError(message) {
+      const errorDiv = document.getElementById('errorMessage')
+      errorDiv.textContent = message
+      errorDiv.style.display = 'block'
+      setTimeout(() => errorDiv.style.display = 'none', 5000)
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div')
+      div.textContent = text
+      return div.innerHTML
+    }
+    
+    function formatDate(dateString) {
+      if (!dateString) return '未知'
+      const date = new Date(dateString)
+      return date.toLocaleDateString('zh-CN')
+    }
+    
+    function addNewService() {
+      alert('新建服务功能（完整版本可用）')
+    }
+  </script>
+  <script>
+    // 移动端菜单切换
+    document.addEventListener('DOMContentLoaded', () => {
+      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+      const sidebar = document.getElementById('sidebar');
+      
+      if (mobileMenuBtn && sidebar) {
+        // 检查是否为移动端
+        const isMobile = window.innerWidth <= 768;
+        if (isMobile) {
+          mobileMenuBtn.style.display = 'block';
+          
+          mobileMenuBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+          });
+          
+          // 点击内容区域关闭菜单
+          document.querySelector('.main-content').addEventListener('click', () => {
+            if (sidebar.classList.contains('open')) {
+              sidebar.classList.remove('open');
+            }
+          });
+        }
+      }
+      
+      // 设置当前页面激活状态
+      const currentPage = window.location.pathname.split('/').pop() || 'dashboard-simple.html';
+      const navLinks = document.querySelectorAll('.nav-link');
+      
+      navLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && href.includes(currentPage)) {
+          link.classList.add('active');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

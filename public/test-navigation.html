@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>导航测试页面</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            color: #333;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            color: #00B578;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 2.5rem;
+        }
+        
+        .status {
+            background: #f0f9ff;
+            border: 2px solid #00B578;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .status h2 {
+            color: #00B578;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .status-label {
+            color: #718096;
+            font-weight: 500;
+        }
+        
+        .status-value {
+            color: #2d3748;
+            font-weight: 600;
+        }
+        
+        .success {
+            color: #00B578;
+        }
+        
+        .error {
+            color: #ff4d4f;
+        }
+        
+        .test-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+        }
+        
+        .test-btn {
+            display: block;
+            padding: 15px;
+            background: #00B578;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .test-btn:hover {
+            background: #009A63;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 181, 120, 0.3);
+        }
+        
+        .test-btn.secondary {
+            background: #f7fafc;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .test-btn.secondary:hover {
+            background: #e2e8f0;
+            border-color: #00B578;
+            color: #00B578;
+        }
+        
+        .instructions {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+        
+        .instructions h3 {
+            color: #00B578;
+            margin-bottom: 15px;
+        }
+        
+        .instructions ol {
+            margin-left: 20px;
+            line-height: 1.8;
+        }
+        
+        .instructions li {
+            margin-bottom: 10px;
+        }
+        
+        .code {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .test-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 导航系统测试</h1>
+        
+        <div class="status">
+            <h2>📊 系统状态</h2>
+            <div class="status-item">
+                <span class="status-label">服务器状态：</span>
+                <span class="status-value success" id="serverStatus">检测中...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">登录状态：</span>
+                <span class="status-value" id="loginStatus">检测中...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">导航系统：</span>
+                <span class="status-value" id="navStatus">检测中...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">页面总数：</span>
+                <span class="status-value">14个</span>
+            </div>
+        </div>
+        
+        <div class="test-buttons">
+            <a href="/services" class="test-btn" target="_blank">
+                🔧 测试服务页面
+            </a>
+            <a href="/dashboard" class="test-btn" target="_blank">
+                📊 测试仪表盘
+            </a>
+            <a href="/kanban" class="test-btn" target="_blank">
+                📋 测试项目管理
+            </a>
+            <a href="/analytics" class="test-btn" target="_blank">
+                📈 测试数据分析
+            </a>
+            <a href="/login-simple-redirect.html" class="test-btn secondary" target="_blank">
+                🔐 测试登录
+            </a>
+            <a href="/all-pages.html" class="test-btn secondary" target="_blank">
+                🌐 完整页面导航
+            </a>
+        </div>
+        
+        <div class="instructions">
+            <h3>📝 测试说明</h3>
+            <ol>
+                <li><strong>点击上方任意测试按钮</strong>打开对应页面</li>
+                <li>检查页面顶部是否有<strong>绿色导航栏</strong></li>
+                <li>导航栏应包含所有页面链接和用户信息</li>
+                <li>桌面端：导航栏横向排列在顶部</li>
+                <li>移动端：点击左上角汉堡菜单展开导航</li>
+                <li>点击任意导航链接跳转到对应页面</li>
+            </ol>
+            
+            <div class="code">
+// 预期看到的导航栏结构
+桌面端：
+[Logo] [仪表盘] [我的服务] [客户管理] ... [设置] [退出]
+
+移动端：
+[☰ 菜单] [Logo] [用户信息] [退出]
+            </div>
+            
+            <p><strong>💡 提示：</strong>如果导航栏不显示，请按F5刷新页面，或清除浏览器缓存后重试。</p>
+        </div>
+    </div>
+    
+    <script>
+        // 检查服务器状态
+        function checkServerStatus() {
+            fetch('/')
+                .then(response => {
+                    const serverStatus = document.getElementById('serverStatus')
+                    if (response.ok) {
+                        serverStatus.textContent = '✅ 正常'
+                        serverStatus.className = 'status-value success'
+                    }
+                })
+                .catch(() => {
+                    const serverStatus = document.getElementById('serverStatus')
+                    serverStatus.textContent = '❌ 异常'
+                    serverStatus.className = 'status-value error'
+                })
+        }
+        
+        // 检查登录状态
+        function checkLoginStatus() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn')
+            const userName = localStorage.getItem('userName')
+            const loginStatus = document.getElementById('loginStatus')
+            
+            if (isLoggedIn === 'true' && userName) {
+                loginStatus.textContent = `✅ 已登录 (${userName})`
+                loginStatus.className = 'status-value success'
+            } else {
+                loginStatus.textContent = '❌ 未登录'
+                loginStatus.className = 'status-value'
+            }
+        }
+        
+        // 检查导航系统
+        function checkNavigation() {
+            const navStatus = document.getElementById('navStatus')
+            
+            // 尝试访问服务页面检查导航
+            fetch('/services')
+                .then(response => response.text())
+                .then(html => {
+                    if (html.includes('TopNav') || html.includes('topnav')) {
+                        navStatus.textContent = '✅ 已启用'
+                        navStatus.className = 'status-value success'
+                    } else if (html.includes('Sidebar') || html.includes('sidebar')) {
+                        navStatus.textContent = '⚠️ 使用旧版侧边栏'
+                        navStatus.className = 'status-value'
+                    } else {
+                        navStatus.textContent = '❌ 未找到导航'
+                        navStatus.className = 'status-value error'
+                    }
+                })
+                .catch(() => {
+                    navStatus.textContent = '❌ 检测失败'
+                    navStatus.className = 'status-value error'
+                })
+        }
+        
+        // 页面加载时检查状态
+        document.addEventListener('DOMContentLoaded', () => {
+            checkServerStatus()
+            checkLoginStatus()
+            checkNavigation()
+            
+            // 每3秒更新一次状态
+            setInterval(() => {
+                checkLoginStatus()
+                checkNavigation()
+            }, 3000)
+        })
+        
+        // 为所有测试按钮添加点击跟踪
+        document.querySelectorAll('.test-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                console.log(`测试: ${this.textContent.trim()}`)
+            })
+        })
+    </script>
+</body>
+</html>
