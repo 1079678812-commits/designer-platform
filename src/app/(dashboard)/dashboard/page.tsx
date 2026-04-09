@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import { useAuth } from '@/lib/useAuth'
 import { Briefcase, Users, FileText, TrendingUp, DollarSign, ArrowUpRight, ArrowDownRight } from 'lucide-react'
+import BannerCarousel from '@/components/BannerCarousel'
 
 interface DashboardStats {
   totalServices: number; activeServices: number
@@ -78,6 +79,11 @@ export default function DashboardPage() {
         <div className="mb-8">
           <h1 className="text-xl md:text-2xl font-bold text-[rgba(0,0,0,0.85)]">你好，{user?.name || '设计师'}</h1>
           <p className="text-[rgba(0,0,0,0.45)] mt-1 text-sm md:text-base">欢迎回来，这是你的业务概览</p>
+        </div>
+
+        {/* 图片轮播 */}
+        <div className="mb-8">
+          <BannerCarousel />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">

@@ -3,33 +3,46 @@
 import { useState, useEffect } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { useAuth } from '@/lib/useAuth'
-import { Search, Plus, Eye, Edit, Trash2, FileText, CheckCircle, Clock, XCircle, Download } from 'lucide-react'
+import { Search, Plus, FileText, X } from 'lucide-react'
 
-interface Contract { id: string; title: string; description: string | null; status: string; amount: number; signedAt: string | null; createdAt: string; order?: { orderNo: string; title: string } }
+interface Contract { id: string; title: string; description: string; status: string; amount: number; signedAt: string | null; createdAt: string; order?: { title: string } }
 
-const statusMap: Record<string, { label: string; color: string; icon: any }> = {
-  draft: { label: '草稿', color: 'text-[#FAAD14] bg-[#FFFBE6] border border-[#FFE58F]', icon: Clock },
-  signed: { label: '已签署', color: 'text-[#52C41A] bg-[#F6FFED] border border-[#B7EB8F]', icon: CheckCircle },
-  expired: { label: '已过期', color: 'text-[#8C8C8C] bg-[#FAFAFA] border border-[#D9D9D9]', icon: XCircle },
-  cancelled: { label: '已取消', color: 'text-[#FF4D4F] bg-[#FFF2F0] border border-[#FFCCC7]', icon: XCircle },
+const statusConfig: Record<string, { label: string; color: string }> = {
+  draft: { label: '草稿', color: 'text-[#FAAD14] bg-[#FFFBE6] border border-[#FFE58F]' },
+  sent: { label: '已发送', color: 'text-[#1890FF] bg-[#E6F7FF] border border-[#91D5FF]' },
+  signed: { label: '已签署', color: 'text-[#52C41A] bg-[#F6FFED] border border-[#B7EB8F]' },
+  expired: { label: '已过期', color: 'text-[#FF4D4F] bg-[#FFF2F0] border border-[#FFCCC7]' },
 }
 
 export default function ContractsPage() {
   const { user, loading: authLoading } = useAuth()
   const [contracts, setContracts] = useState<Contract[]>([])
+  const [orders, setOrders] = useState<{id:string,title:string}[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [filterStatus, setFilterStatus] = useState('all')
+  const [showModal, setShowModal] = useState(false)
+  const [form, setForm] = useState({ title: '', description: '', amount: 0, orderId: '' })
+  const [submitting, setSubmitting] = useState(false)
 
-  useEffect(() => { if (user) fetchContracts() }, [user])
-  useEffect(() => { if (user) fetchContracts() }, [filterStatus, user])
+  useEffect(() => { if (user) { fetchContracts(); fetchOrders(); } }, [user])
 
   const fetchContracts = async () => {
+    try { const res = await fetch('/api/contracts'); if (res.ok) { const data = await res.json(); setContracts(Array.isArray(data) ? data : data.contracts || []) } } catch {} finally { setLoading(false) }
+  }
+  const fetchOrders = async () => {
+    try { const res = await fetch('/api/orders'); if (res.ok) { const data = await res.json(); setOrders(Array.isArray(data) ? data : data.orders || []) } } catch {}
+  }
+
+  const handleCreate = async () => {
+    if (!form.title.trim()) return alert('请输入合同标题')
+    setSubmitting(true)
     try {
-      const qs = filterStatus !== 'all' ? `?status=${filterStatus}` : ''
-      const res = await fetch(`/api/contracts${qs}`)
-      if (res.ok) { const data = await res.json(); setContracts(Array.isArray(data) ? data : data.contracts || []) }
-    } catch (err) { console.error(err) } finally { setLoading(false) }
+      const body: any = { title: form.title, description: form.description, amount: form.amount }
+      if (form.orderId) body.orderId = form.orderId
+      const res = await fetch('/api/contracts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      if (res.ok) { setShowModal(false); setForm({ title: '', description: '', amount: 0, orderId: '' }); fetchContracts() }
+      else { const data = await res.json(); alert(data.error || '创建失败') }
+    } catch { alert('网络错误') } finally { setSubmitting(false) }
   }
 
   const filtered = contracts.filter(c => c.title.toLowerCase().includes(search.toLowerCase()))
@@ -41,81 +54,45 @@ export default function ContractsPage() {
       <Sidebar />
       <div className="flex-1 p-4 md:p-8 overflow-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold text-[rgba(0,0,0,0.85)]">合同管理</h1>
-            <p className="text-sm text-[rgba(0,0,0,0.45)] mt-1">管理项目合同，确保权益保障</p>
-          </div>
-          <button className="flex items-center gap-2 px-4 py-2.5 bg-[#00B578] text-white rounded-lg font-medium hover:bg-[#009A63] text-sm"><Plus className="w-4 h-4" /> 新建合同</button>
+          <div><h1 className="text-xl md:text-2xl font-bold text-[rgba(0,0,0,0.85)]">合同管理</h1><p className="text-sm text-[rgba(0,0,0,0.45)] mt-1">管理你的合同文件</p></div>
+          <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2.5 bg-[#00B578] text-white rounded-lg font-medium hover:bg-[#009A63] transition-colors text-sm"><Plus className="w-4 h-4" /> 新建合同</button>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
-          {[
-            { label: '总合同', value: contracts.length, icon: FileText },
-            { label: '已签署', value: contracts.filter(c => c.status === 'signed').length, icon: CheckCircle },
-            { label: '草稿', value: contracts.filter(c => c.status === 'draft').length, icon: Clock },
-            { label: '总金额', value: `¥${contracts.reduce((s, c) => s + c.amount, 0).toLocaleString()}`, icon: FileText },
-          ].map(s => (
-            <div key={s.label} className="bg-white p-4 md:p-6 rounded-xl border border-[#E8E8E8] shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
-              <div className="flex items-center justify-between">
-                <div><p className="text-xs md:text-sm text-[rgba(0,0,0,0.45)]">{s.label}</p><p className="text-lg md:text-2xl font-bold text-[rgba(0,0,0,0.85)] mt-1">{s.value}</p></div>
-                <s.icon className="w-5 h-5 text-[#00B578]" />
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-[#E8E8E8] mb-6">
-          <div className="flex flex-col md:flex-row gap-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[rgba(0,0,0,0.45)]" />
-              <input type="text" placeholder="搜索合同..." value={search} onChange={e => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] focus:ring-2 focus:ring-[#00B578]/20 text-sm" />
-            </div>
-            <div className="flex gap-2 overflow-x-auto">
-              {['all', 'draft', 'signed', 'expired', 'cancelled'].map(s => (
-                <button key={s} onClick={() => setFilterStatus(s)} className={`px-3 py-1.5 rounded-lg text-sm whitespace-nowrap ${filterStatus === s ? 'bg-[#00B578] text-white' : 'bg-[#F5F5F5] text-[rgba(0,0,0,0.45)]'}`}>
-                  {s === 'all' ? '全部' : statusMap[s]?.label || s}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-3 md:space-y-4">
+        <div className="space-y-3">
           {filtered.map(contract => {
-            const s = statusMap[contract.status] || statusMap.draft
-            const StatusIcon = s.icon
+            const config = statusConfig[contract.status] || statusConfig.draft
             return (
-              <div key={contract.id} className="bg-white rounded-xl border border-[#E8E8E8] p-4 md:p-6 shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-shadow">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <h3 className="font-semibold text-[rgba(0,0,0,0.85)]">{contract.title}</h3>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.color}`}><StatusIcon className="w-3 h-3 inline mr-1" />{s.label}</span>
-                    </div>
-                    <p className="text-sm text-[rgba(0,0,0,0.45)] truncate">{contract.description || '-'}</p>
-                    <div className="flex flex-wrap gap-4 mt-2 text-xs text-[rgba(0,0,0,0.45)]">
-                      {contract.order && <span>订单：{contract.order.orderNo}</span>}
-                      <span>创建于：{new Date(contract.createdAt).toLocaleDateString('zh-CN')}</span>
-                      {contract.signedAt && <span>签署于：{new Date(contract.signedAt).toLocaleDateString('zh-CN')}</span>}
-                    </div>
+              <div key={contract.id} className="bg-white rounded-xl border border-[#E8E8E8] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${config.color}`}>{config.label}</span></div>
+                    <h3 className="font-semibold text-[rgba(0,0,0,0.85)]">{contract.title}</h3>
+                    {contract.description && <p className="text-sm text-[rgba(0,0,0,0.45)] mt-1">{contract.description}</p>}
+                    {contract.order && <p className="text-xs text-[rgba(0,0,0,0.45)] mt-1">关联订单: {contract.order.title}</p>}
                   </div>
-                  <div className="flex items-center gap-3 md:gap-4 md:ml-6">
-                    <span className="text-lg md:text-xl font-bold text-[rgba(0,0,0,0.85)]">¥{contract.amount.toLocaleString()}</span>
-                    <div className="flex gap-1">
-                      <button className="p-2 hover:bg-[#F5F5F5] rounded-lg text-[rgba(0,0,0,0.45)]"><Eye className="w-4 h-4" /></button>
-                      <button className="p-2 hover:bg-[#F5F5F5] rounded-lg text-[rgba(0,0,0,0.45)]"><Edit className="w-4 h-4" /></button>
-                      <button className="p-2 hover:bg-[#F5F5F5] rounded-lg text-[rgba(0,0,0,0.45)]"><Download className="w-4 h-4" /></button>
-                      <button className="p-2 hover:bg-[#FFF2F0] rounded-lg text-[#FF4D4F]"><Trash2 className="w-4 h-4" /></button>
-                    </div>
-                  </div>
+                  <p className="text-lg font-bold text-[rgba(0,0,0,0.85)]">¥{contract.amount.toLocaleString()}</p>
                 </div>
               </div>
             )
           })}
-          {filtered.length === 0 && <div className="text-center py-12 text-[rgba(0,0,0,0.45)]">暂无合同</div>}
         </div>
+        {filtered.length === 0 && (<div className="text-center py-12"><FileText className="w-12 h-12 text-[rgba(0,0,0,0.15)] mx-auto mb-4" /><h3 className="text-base font-medium">暂无合同</h3></div>)}
       </div>
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6">
+            <div className="flex justify-between items-center mb-5"><h2 className="text-lg font-bold">新建合同</h2><button onClick={() => setShowModal(false)} className="p-1 hover:bg-[#F5F5F5] rounded-lg"><X className="w-5 h-5" /></button></div>
+            <div className="space-y-4">
+              <div><label className="block text-sm font-medium mb-1">合同标题 *</label><input type="text" value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="如：品牌设计合同" className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm" /></div>
+              <div><label className="block text-sm font-medium mb-1">合同描述</label><textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={3} className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm resize-none" /></div>
+              <div><label className="block text-sm font-medium mb-1">金额 (元)</label><input type="number" value={form.amount} onChange={e => setForm({...form, amount: Number(e.target.value)})} min={0} className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm" /></div>
+              <div><label className="block text-sm font-medium mb-1">关联订单</label><select value={form.orderId} onChange={e => setForm({...form, orderId: e.target.value})} className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm"><option value="">选择订单（可选）</option>{orders.map(o => <option key={o.id} value={o.id}>{o.title}</option>)}</select></div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6"><button onClick={() => setShowModal(false)} className="px-4 py-2.5 border border-[#D9D9D9] rounded-lg text-sm hover:bg-[#F5F5F5]">取消</button><button onClick={handleCreate} disabled={submitting} className="px-4 py-2.5 bg-[#00B578] text-white rounded-lg text-sm hover:bg-[#009A63] disabled:opacity-50">{submitting ? '创建中...' : '创建'}</button></div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

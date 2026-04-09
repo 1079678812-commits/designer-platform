@@ -3,39 +3,50 @@
 import { useState, useEffect } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { useAuth } from '@/lib/useAuth'
-import { Search, Plus, Eye, Edit, Send, CheckCircle, Clock, XCircle, DollarSign, FileText } from 'lucide-react'
+import { Search, Plus, Receipt, X } from 'lucide-react'
 
-interface Invoice { id: string; invoiceNo: string; title: string; amount: number; status: string; issuedAt: string; dueDate: string | null; paidAt: string | null; order?: { orderNo: string; title: string } }
+interface Invoice { id: string; invoiceNo: string; title: string; amount: number; status: string; dueDate: string | null; createdAt: string; order?: { title: string } }
 
-const statusMap: Record<string, { label: string; color: string; icon: any }> = {
-  pending: { label: '待付款', color: 'text-[#FAAD14] bg-[#FFFBE6] border border-[#FFE58F]', icon: Clock },
-  paid: { label: '已付款', color: 'text-[#52C41A] bg-[#F6FFED] border border-[#B7EB8F]', icon: CheckCircle },
-  overdue: { label: '已逾期', color: 'text-[#FF4D4F] bg-[#FFF2F0] border border-[#FFCCC7]', icon: XCircle },
-  cancelled: { label: '已取消', color: 'text-[#8C8C8C] bg-[#FAFAFA] border border-[#D9D9D9]', icon: XCircle },
+const statusConfig: Record<string, { label: string; color: string }> = {
+  pending: { label: '待支付', color: 'text-[#FAAD14] bg-[#FFFBE6] border border-[#FFE58F]' },
+  paid: { label: '已支付', color: 'text-[#52C41A] bg-[#F6FFED] border border-[#B7EB8F]' },
+  overdue: { label: '已逾期', color: 'text-[#FF4D4F] bg-[#FFF2F0] border border-[#FFCCC7]' },
+  cancelled: { label: '已取消', color: 'text-[rgba(0,0,0,0.45)] bg-[#F5F5F5] border border-[#E8E8E8]' },
 }
 
 export default function InvoicesPage() {
   const { user, loading: authLoading } = useAuth()
   const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [orders, setOrders] = useState<{id:string,title:string}[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [filterStatus, setFilterStatus] = useState('all')
+  const [showModal, setShowModal] = useState(false)
+  const [form, setForm] = useState({ title: '', amount: 0, dueDate: '', orderId: '' })
+  const [submitting, setSubmitting] = useState(false)
 
-  useEffect(() => { if (user) fetchInvoices() }, [user])
-  useEffect(() => { if (user) fetchInvoices() }, [filterStatus, user])
+  useEffect(() => { if (user) { fetchInvoices(); fetchOrders(); } }, [user])
 
   const fetchInvoices = async () => {
+    try { const res = await fetch('/api/invoices'); if (res.ok) { const data = await res.json(); setInvoices(Array.isArray(data) ? data : data.invoices || []) } } catch {} finally { setLoading(false) }
+  }
+  const fetchOrders = async () => {
+    try { const res = await fetch('/api/orders'); if (res.ok) { const data = await res.json(); setOrders(Array.isArray(data) ? data : data.orders || []) } } catch {}
+  }
+
+  const handleCreate = async () => {
+    if (!form.title.trim()) return alert('请输入发票标题')
+    setSubmitting(true)
     try {
-      const qs = filterStatus !== 'all' ? `?status=${filterStatus}` : ''
-      const res = await fetch(`/api/invoices${qs}`)
-      if (res.ok) { const data = await res.json(); setInvoices(Array.isArray(data) ? data : data.invoices || []) }
-    } catch (err) { console.error(err) } finally { setLoading(false) }
+      const body: any = { title: form.title, amount: form.amount }
+      if (form.dueDate) body.dueDate = new Date(form.dueDate).toISOString()
+      if (form.orderId) body.orderId = form.orderId
+      const res = await fetch('/api/invoices', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      if (res.ok) { setShowModal(false); setForm({ title: '', amount: 0, dueDate: '', orderId: '' }); fetchInvoices() }
+      else { const data = await res.json(); alert(data.error || '创建失败') }
+    } catch { alert('网络错误') } finally { setSubmitting(false) }
   }
 
   const filtered = invoices.filter(i => i.title.toLowerCase().includes(search.toLowerCase()) || i.invoiceNo.toLowerCase().includes(search.toLowerCase()))
-  const totalAmount = invoices.reduce((s, i) => s + i.amount, 0)
-  const paidAmount = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + i.amount, 0)
-  const pendingAmount = invoices.filter(i => i.status === 'pending').reduce((s, i) => s + i.amount, 0)
 
   if (authLoading || loading) return (<div className="flex min-h-screen bg-[#F5F5F5]"><Sidebar /><div className="flex-1 flex items-center justify-center"><div className="w-10 h-10 border-[3px] border-[#00B578] border-t-transparent rounded-full animate-spin" /></div></div>)
 
@@ -44,93 +55,46 @@ export default function InvoicesPage() {
       <Sidebar />
       <div className="flex-1 p-4 md:p-8 overflow-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold text-[rgba(0,0,0,0.85)]">发票管理</h1>
-            <p className="text-sm text-[rgba(0,0,0,0.45)] mt-1">生成和管理项目发票</p>
-          </div>
-          <button className="flex items-center gap-2 px-4 py-2.5 bg-[#00B578] text-white rounded-lg font-medium hover:bg-[#009A63] text-sm"><Plus className="w-4 h-4" /> 新建发票</button>
+          <div><h1 className="text-xl md:text-2xl font-bold text-[rgba(0,0,0,0.85)]">发票管理</h1><p className="text-sm text-[rgba(0,0,0,0.45)] mt-1">管理你的发票和账单</p></div>
+          <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2.5 bg-[#00B578] text-white rounded-lg font-medium hover:bg-[#009A63] transition-colors text-sm"><Plus className="w-4 h-4" /> 新建发票</button>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
-          {[
-            { label: '发票总数', value: invoices.length, icon: FileText, color: 'text-[#00B578]' },
-            { label: '总金额', value: `¥${totalAmount.toLocaleString()}`, icon: DollarSign, color: 'text-[#00B578]' },
-            { label: '已收款', value: `¥${paidAmount.toLocaleString()}`, icon: CheckCircle, color: 'text-[#52C41A]' },
-            { label: '待收款', value: `¥${pendingAmount.toLocaleString()}`, icon: Clock, color: 'text-[#FAAD14]' },
-          ].map(s => (
-            <div key={s.label} className="bg-white p-4 md:p-6 rounded-xl border border-[#E8E8E8] shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
-              <div className="flex items-center justify-between">
-                <div><p className="text-xs md:text-sm text-[rgba(0,0,0,0.45)]">{s.label}</p><p className={`text-lg md:text-2xl font-bold ${s.color} mt-1`}>{s.value}</p></div>
-                <s.icon className={`w-5 h-5 ${s.color}`} />
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-[#E8E8E8] mb-6">
-          <div className="flex flex-col md:flex-row gap-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[rgba(0,0,0,0.45)]" />
-              <input type="text" placeholder="搜索发票号或标题..." value={search} onChange={e => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] focus:ring-2 focus:ring-[#00B578]/20 text-sm" />
-            </div>
-            <div className="flex gap-2 overflow-x-auto">
-              {['all', 'pending', 'paid', 'overdue', 'cancelled'].map(s => (
-                <button key={s} onClick={() => setFilterStatus(s)} className={`px-3 py-1.5 rounded-lg text-sm whitespace-nowrap ${filterStatus === s ? 'bg-[#00B578] text-white' : 'bg-[#F5F5F5] text-[rgba(0,0,0,0.45)]'}`}>
-                  {s === 'all' ? '全部' : statusMap[s]?.label || s}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Desktop: Table */}
-        <div className="hidden md:block bg-white rounded-xl border border-[#E8E8E8] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-[#FAFAFA]">
-                <tr>{['发票号', '标题', '订单', '金额', '状态', '开具日期', '到期日期', '操作'].map(h => <th key={h} className="px-4 py-3 text-left font-medium text-[rgba(0,0,0,0.45)]">{h}</th>)}</tr>
-              </thead>
-              <tbody className="divide-y divide-[#F0F0F0]">
-                {filtered.map(inv => {
-                  const s = statusMap[inv.status] || statusMap.pending
-                  return (
-                    <tr key={inv.id} className="hover:bg-[#FAFAFA]">
-                      <td className="px-4 py-4 font-mono text-[rgba(0,0,0,0.45)]">{inv.invoiceNo}</td>
-                      <td className="px-4 py-4 font-medium text-[rgba(0,0,0,0.85)]">{inv.title}</td>
-                      <td className="px-4 py-4 text-[rgba(0,0,0,0.45)]">{inv.order?.orderNo || '-'}</td>
-                      <td className="px-4 py-4 font-semibold text-[rgba(0,0,0,0.85)]">¥{inv.amount.toLocaleString()}</td>
-                      <td className="px-4 py-4"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.color}`}>{statusMap[inv.status]?.label || inv.status}</span></td>
-                      <td className="px-4 py-4 text-[rgba(0,0,0,0.45)]">{new Date(inv.issuedAt).toLocaleDateString('zh-CN')}</td>
-                      <td className="px-4 py-4 text-[rgba(0,0,0,0.45)]">{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('zh-CN') : '-'}</td>
-                      <td className="px-4 py-4"><div className="flex gap-1"><button className="p-1.5 hover:bg-[#F5F5F5] rounded"><Eye className="w-4 h-4 text-[rgba(0,0,0,0.45)]" /></button><button className="p-1.5 hover:bg-[#F5F5F5] rounded"><Send className="w-4 h-4 text-[rgba(0,0,0,0.45)]" /></button><button className="p-1.5 hover:bg-[#F5F5F5] rounded"><Edit className="w-4 h-4 text-[rgba(0,0,0,0.45)]" /></button></div></td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-          {filtered.length === 0 && <div className="text-center py-12 text-[rgba(0,0,0,0.45)]">暂无发票</div>}
-        </div>
-
-        {/* Mobile: Card list */}
-        <div className="md:hidden space-y-3">
-          {filtered.map(inv => {
-            const s = statusMap[inv.status] || statusMap.pending
+        <div className="space-y-3">
+          {filtered.map(invoice => {
+            const config = statusConfig[invoice.status] || statusConfig.pending
             return (
-              <div key={inv.id} className="bg-white rounded-xl border border-[#E8E8E8] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-mono text-[rgba(0,0,0,0.45)]">{inv.invoiceNo}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.color}`}>{statusMap[inv.status]?.label || inv.status}</span>
+              <div key={invoice.id} className="bg-white rounded-xl border border-[#E8E8E8] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${config.color}`}>{config.label}</span><span className="text-xs text-[rgba(0,0,0,0.45)]">#{invoice.invoiceNo}</span></div>
+                    <h3 className="font-semibold text-[rgba(0,0,0,0.85)]">{invoice.title}</h3>
+                    {invoice.order && <p className="text-xs text-[rgba(0,0,0,0.45)] mt-1">关联订单: {invoice.order.title}</p>}
+                  </div>
+                  <p className="text-lg font-bold text-[rgba(0,0,0,0.85)]">¥{invoice.amount.toLocaleString()}</p>
                 </div>
-                <h3 className="font-medium text-[rgba(0,0,0,0.85)]">¥{inv.amount.toLocaleString()} · {inv.title}</h3>
-                <p className="text-sm text-[rgba(0,0,0,0.45)] mt-1">开具：{new Date(inv.issuedAt).toLocaleDateString('zh-CN')}{inv.dueDate ? ` · 到期：${new Date(inv.dueDate).toLocaleDateString('zh-CN')}` : ''}</p>
               </div>
             )
           })}
-          {filtered.length === 0 && <div className="text-center py-12 text-[rgba(0,0,0,0.45)]">暂无发票</div>}
         </div>
+        {filtered.length === 0 && (<div className="text-center py-12"><Receipt className="w-12 h-12 text-[rgba(0,0,0,0.15)] mx-auto mb-4" /><h3 className="text-base font-medium">暂无发票</h3></div>)}
       </div>
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6">
+            <div className="flex justify-between items-center mb-5"><h2 className="text-lg font-bold">新建发票</h2><button onClick={() => setShowModal(false)} className="p-1 hover:bg-[#F5F5F5] rounded-lg"><X className="w-5 h-5" /></button></div>
+            <div className="space-y-4">
+              <div><label className="block text-sm font-medium mb-1">发票标题 *</label><input type="text" value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="如：品牌设计尾款" className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm" /></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="block text-sm font-medium mb-1">金额 (元)</label><input type="number" value={form.amount} onChange={e => setForm({...form, amount: Number(e.target.value)})} min={0} className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm" /></div>
+                <div><label className="block text-sm font-medium mb-1">到期日</label><input type="date" value={form.dueDate} onChange={e => setForm({...form, dueDate: e.target.value})} className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm" /></div>
+              </div>
+              <div><label className="block text-sm font-medium mb-1">关联订单</label><select value={form.orderId} onChange={e => setForm({...form, orderId: e.target.value})} className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm"><option value="">选择订单（可选）</option>{orders.map(o => <option key={o.id} value={o.id}>{o.title}</option>)}</select></div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6"><button onClick={() => setShowModal(false)} className="px-4 py-2.5 border border-[#D9D9D9] rounded-lg text-sm hover:bg-[#F5F5F5]">取消</button><button onClick={handleCreate} disabled={submitting} className="px-4 py-2.5 bg-[#00B578] text-white rounded-lg text-sm hover:bg-[#009A63] disabled:opacity-50">{submitting ? '创建中...' : '创建'}</button></div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

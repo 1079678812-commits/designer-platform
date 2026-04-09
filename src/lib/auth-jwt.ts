@@ -32,7 +32,7 @@ export function verifyToken(token: string): TokenPayload | null {
 export function setTokenCookie(token: string): string {
   return serialize(TOKEN_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: false,
     sameSite: 'lax',
     maxAge: TOKEN_MAX_AGE,
     path: '/',
@@ -42,7 +42,7 @@ export function setTokenCookie(token: string): string {
 export function clearTokenCookie(): string {
   return serialize(TOKEN_NAME, '', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: false,
     sameSite: 'lax',
     maxAge: -1,
     path: '/',

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { useAuth } from '@/lib/useAuth'
-import { Search, Plus, Edit, Trash2, Eye, Star, TrendingUp, Clock, CheckCircle, XCircle, Briefcase } from 'lucide-react'
+import { Search, Plus, Edit, Trash2, Eye, Star, TrendingUp, Clock, CheckCircle, XCircle, Briefcase, X } from 'lucide-react'
 
 interface Service { id: string; name: string; description: string; category: string; price: number; status: string; tags: string; orderCount: number; rating: number; createdAt: string }
 
@@ -13,12 +13,17 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
   draft: { label: '草稿', color: 'text-[#FAAD14] bg-[#FFFBE6] border border-[#FFE58F]', icon: Clock },
 }
 
+const categories = ['品牌设计', '界面设计', '平面设计', '演示设计', '产品设计', '插画', '其他']
+
 export default function ServicesPage() {
   const { user, loading: authLoading } = useAuth()
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const [showModal, setShowModal] = useState(false)
+  const [form, setForm] = useState({ name: '', description: '', category: '品牌设计', price: 0, tags: '' })
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => { if (user) fetchServices() }, [user])
 
@@ -29,7 +34,36 @@ export default function ServicesPage() {
     } catch (err) { console.error(err) } finally { setLoading(false) }
   }
 
-  const categories = ['all', '品牌设计', '界面设计', '平面设计', '演示设计', '产品设计', '插画']
+  const handleCreate = async () => {
+    if (!form.name.trim()) return alert('请输入服务名称')
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/services', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      if (res.ok) {
+        setShowModal(false)
+        setForm({ name: '', description: '', category: '品牌设计', price: 0, tags: '' })
+        fetchServices()
+      } else {
+        const data = await res.json()
+        alert(data.error || '创建失败')
+      }
+    } catch { alert('网络错误') } finally { setSubmitting(false) }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('确定删除该服务？')) return
+    try {
+      const res = await fetch(`/api/services/${id}`, { method: 'DELETE' })
+      if (res.ok) fetchServices()
+      else { const data = await res.json(); alert(data.error || '删除失败') }
+    } catch { alert('网络错误') }
+  }
+
+  const allCategories = ['all', ...categories]
   const filtered = services.filter(s => {
     const ms = s.name.toLowerCase().includes(search.toLowerCase()) || s.description.toLowerCase().includes(search.toLowerCase())
     const mc = selectedCategory === 'all' || s.category === selectedCategory
@@ -47,7 +81,7 @@ export default function ServicesPage() {
             <h1 className="text-xl md:text-2xl font-bold text-[rgba(0,0,0,0.85)]">我的服务</h1>
             <p className="text-sm text-[rgba(0,0,0,0.45)] mt-1">管理你的设计服务，展示专业能力</p>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2.5 bg-[#00B578] text-white rounded-lg font-medium hover:bg-[#009A63] transition-colors text-sm">
+          <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2.5 bg-[#00B578] text-white rounded-lg font-medium hover:bg-[#009A63] transition-colors text-sm">
             <Plus className="w-4 h-4" /> 新建服务
           </button>
         </div>
@@ -76,7 +110,7 @@ export default function ServicesPage() {
                 className="w-full pl-10 pr-4 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] focus:ring-2 focus:ring-[#00B578]/20 text-sm" />
             </div>
             <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
-              {categories.map(cat => (
+              {allCategories.map(cat => (
                 <button key={cat} onClick={() => setSelectedCategory(cat)}
                   className={`px-3 py-1.5 rounded-lg text-sm whitespace-nowrap ${selectedCategory === cat ? 'bg-[#00B578] text-white' : 'bg-[#F5F5F5] text-[rgba(0,0,0,0.45)] hover:bg-[#E8E8E8]'}`}>
                   {cat === 'all' ? '全部' : cat}
@@ -114,7 +148,7 @@ export default function ServicesPage() {
                   <div className="flex items-center gap-1">
                     <button className="p-2 hover:bg-[#F5F5F5] rounded-lg text-[rgba(0,0,0,0.45)]"><Eye className="w-4 h-4" /></button>
                     <button className="p-2 hover:bg-[#F5F5F5] rounded-lg text-[rgba(0,0,0,0.45)]"><Edit className="w-4 h-4" /></button>
-                    <button className="p-2 hover:bg-[#FFF2F0] rounded-lg text-[#FF4D4F]"><Trash2 className="w-4 h-4" /></button>
+                    <button onClick={() => handleDelete(service.id)} className="p-2 hover:bg-[#FFF2F0] rounded-lg text-[#FF4D4F]"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
               </div>
@@ -130,6 +164,50 @@ export default function ServicesPage() {
           </div>
         )}
       </div>
+
+      {/* 新建服务弹窗 */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6">
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="text-lg font-bold text-[rgba(0,0,0,0.85)]">新建服务</h2>
+              <button onClick={() => setShowModal(false)} className="p-1 hover:bg-[#F5F5F5] rounded-lg"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[rgba(0,0,0,0.85)] mb-1">服务名称 *</label>
+                <input type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="如：Logo设计" className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[rgba(0,0,0,0.85)] mb-1">服务描述</label>
+                <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} placeholder="描述你的服务内容" rows={3} className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm resize-none" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-[rgba(0,0,0,0.85)] mb-1">分类</label>
+                  <select value={form.category} onChange={e => setForm({...form, category: e.target.value})} className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm">
+                    {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[rgba(0,0,0,0.85)] mb-1">价格 (元)</label>
+                  <input type="number" value={form.price} onChange={e => setForm({...form, price: Number(e.target.value)})} min={0} className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[rgba(0,0,0,0.85)] mb-1">标签（逗号分隔）</label>
+                <input type="text" value={form.tags} onChange={e => setForm({...form, tags: e.target.value})} placeholder="如：Logo,品牌,VI" className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button onClick={() => setShowModal(false)} className="px-4 py-2.5 border border-[#D9D9D9] rounded-lg text-sm hover:bg-[#F5F5F5]">取消</button>
+              <button onClick={handleCreate} disabled={submitting} className="px-4 py-2.5 bg-[#00B578] text-white rounded-lg text-sm hover:bg-[#009A63] disabled:opacity-50">
+                {submitting ? '创建中...' : '创建'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

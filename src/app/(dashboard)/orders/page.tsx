@@ -3,37 +3,53 @@
 import { useState, useEffect } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { useAuth } from '@/lib/useAuth'
-import { Search, Plus, Eye, Edit, DollarSign } from 'lucide-react'
-import PaymentModal from '@/components/PaymentModal'
+import { Search, Plus, Edit, Trash2, FileText, DollarSign, Calendar, X } from 'lucide-react'
 
 interface Order { id: string; orderNo: string; title: string; description: string; status: string; amount: number; progress: number; deadline: string | null; createdAt: string; client?: { name: string }; service?: { name: string } }
 
-const statusMap: Record<string, { label: string; color: string }> = {
+const statusConfig: Record<string, { label: string; color: string }> = {
   pending: { label: '待确认', color: 'text-[#FAAD14] bg-[#FFFBE6] border border-[#FFE58F]' },
-  confirmed: { label: '已确认', color: 'text-[#00B578] bg-[#E8F8F0] border border-[#7EDCAA]' },
+  confirmed: { label: '已确认', color: 'text-[#1890FF] bg-[#E6F7FF] border border-[#91D5FF]' },
   in_progress: { label: '进行中', color: 'text-[#00B578] bg-[#E8F8F0] border border-[#7EDCAA]' },
-  review: { label: '审核中', color: 'text-[#722ED1] bg-[#F9F0FF] border border-[#D3ADF7]' },
   completed: { label: '已完成', color: 'text-[#52C41A] bg-[#F6FFED] border border-[#B7EB8F]' },
-  cancelled: { label: '已取消', color: 'text-[#8C8C8C] bg-[#FAFAFA] border border-[#D9D9D9]' },
+  cancelled: { label: '已取消', color: 'text-[#FF4D4F] bg-[#FFF2F0] border border-[#FFCCC7]' },
 }
 
 export default function OrdersPage() {
   const { user, loading: authLoading } = useAuth()
   const [orders, setOrders] = useState<Order[]>([])
+  const [clients, setClients] = useState<{id:string,name:string}[]>([])
+  const [services, setServices] = useState<{id:string,name:string}[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [filterStatus, setFilterStatus] = useState('all')
-  const [payOrder, setPayOrder] = useState<Order | null>(null)
+  const [showModal, setShowModal] = useState(false)
+  const [form, setForm] = useState({ title: '', description: '', amount: 0, deadline: '', clientId: '', serviceId: '' })
+  const [submitting, setSubmitting] = useState(false)
 
-  useEffect(() => { if (user) fetchOrders() }, [user])
-  useEffect(() => { if (user) fetchOrders() }, [filterStatus, user])
+  useEffect(() => { if (user) { fetchOrders(); fetchClients(); fetchServices(); } }, [user])
 
   const fetchOrders = async () => {
+    try { const res = await fetch('/api/orders'); if (res.ok) { const data = await res.json(); setOrders(Array.isArray(data) ? data : data.orders || []) } } catch (err) { console.error(err) } finally { setLoading(false) }
+  }
+  const fetchClients = async () => {
+    try { const res = await fetch('/api/clients'); if (res.ok) { const data = await res.json(); setClients(Array.isArray(data) ? data : data.clients || []) } } catch {}
+  }
+  const fetchServices = async () => {
+    try { const res = await fetch('/api/services'); if (res.ok) { const data = await res.json(); setServices(Array.isArray(data) ? data : data.services || []) } } catch {}
+  }
+
+  const handleCreate = async () => {
+    if (!form.title.trim()) return alert('请输入订单标题')
+    setSubmitting(true)
     try {
-      const qs = filterStatus !== 'all' ? `?status=${filterStatus}` : ''
-      const res = await fetch(`/api/orders${qs}`)
-      if (res.ok) { const data = await res.json(); setOrders(Array.isArray(data) ? data : data.orders || []) }
-    } catch (err) { console.error(err) } finally { setLoading(false) }
+      const body: any = { title: form.title, description: form.description, amount: form.amount }
+      if (form.deadline) body.deadline = new Date(form.deadline).toISOString()
+      if (form.clientId) body.clientId = form.clientId
+      if (form.serviceId) body.serviceId = form.serviceId
+      const res = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      if (res.ok) { setShowModal(false); setForm({ title: '', description: '', amount: 0, deadline: '', clientId: '', serviceId: '' }); fetchOrders() }
+      else { const data = await res.json(); alert(data.error || '创建失败') }
+    } catch { alert('网络错误') } finally { setSubmitting(false) }
   }
 
   const filtered = orders.filter(o => o.title.toLowerCase().includes(search.toLowerCase()) || o.orderNo.toLowerCase().includes(search.toLowerCase()))
@@ -45,106 +61,63 @@ export default function OrdersPage() {
       <Sidebar />
       <div className="flex-1 p-4 md:p-8 overflow-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold text-[rgba(0,0,0,0.85)]">订单管理</h1>
-            <p className="text-sm text-[rgba(0,0,0,0.45)] mt-1">跟踪和管理所有设计订单</p>
-          </div>
-          <button className="flex items-center gap-2 px-4 py-2.5 bg-[#00B578] text-white rounded-lg font-medium hover:bg-[#009A63] text-sm"><Plus className="w-4 h-4" /> 新建订单</button>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
-          {[
-            { label: '全部订单', value: orders.length, color: 'text-[rgba(0,0,0,0.85)]' },
-            { label: '进行中', value: orders.filter(o => o.status === 'in_progress').length, color: 'text-[#00B578]' },
-            { label: '待确认', value: orders.filter(o => o.status === 'pending').length, color: 'text-[#FAAD14]' },
-            { label: '已完成', value: orders.filter(o => o.status === 'completed').length, color: 'text-[#52C41A]' },
-          ].map(s => (
-            <div key={s.label} className="bg-white p-4 md:p-6 rounded-xl border border-[#E8E8E8] shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
-              <p className="text-xs md:text-sm text-[rgba(0,0,0,0.45)]">{s.label}</p>
-              <p className={`text-lg md:text-2xl font-bold ${s.color} mt-1`}>{s.value}</p>
-            </div>
-          ))}
+          <div><h1 className="text-xl md:text-2xl font-bold text-[rgba(0,0,0,0.85)]">订单管理</h1><p className="text-sm text-[rgba(0,0,0,0.45)] mt-1">管理你的设计订单</p></div>
+          <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2.5 bg-[#00B578] text-white rounded-lg font-medium hover:bg-[#009A63] transition-colors text-sm"><Plus className="w-4 h-4" /> 新建订单</button>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-[#E8E8E8] mb-6">
-          <div className="flex flex-col md:flex-row gap-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[rgba(0,0,0,0.45)]" />
-              <input type="text" placeholder="搜索订单号或标题..." value={search} onChange={e => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] focus:ring-2 focus:ring-[#00B578]/20 text-sm" />
-            </div>
-            <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0">
-              {['all', 'pending', 'confirmed', 'in_progress', 'review', 'completed', 'cancelled'].map(s => (
-                <button key={s} onClick={() => setFilterStatus(s)}
-                  className={`px-3 py-1.5 rounded-lg text-sm whitespace-nowrap ${filterStatus === s ? 'bg-[#00B578] text-white' : 'bg-[#F5F5F5] text-[rgba(0,0,0,0.45)] hover:bg-[#E8E8E8]'}`}>
-                  {s === 'all' ? '全部' : statusMap[s]?.label || s}
-                </button>
-              ))}
-            </div>
-          </div>
+          <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[rgba(0,0,0,0.45)]" /><input type="text" placeholder="搜索订单..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm" /></div>
         </div>
 
-        {/* Desktop table */}
-        <div className="hidden md:block bg-white rounded-xl border border-[#E8E8E8] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-[#FAFAFA]">
-                <tr>{['订单号', '标题', '客户', '金额', '状态', '进度', '截止日期', '操作'].map(h => <th key={h} className="px-4 py-3 text-left font-medium text-[rgba(0,0,0,0.45)]">{h}</th>)}</tr>
-              </thead>
-              <tbody className="divide-y divide-[#F0F0F0]">
-                {filtered.map(order => (
-                  <tr key={order.id} className="hover:bg-[#FAFAFA]">
-                    <td className="px-4 py-4 font-mono text-[rgba(0,0,0,0.45)]">{order.orderNo}</td>
-                    <td className="px-4 py-4 font-medium text-[rgba(0,0,0,0.85)]">{order.title}</td>
-                    <td className="px-4 py-4 text-[rgba(0,0,0,0.45)]">{order.client?.name || '-'}</td>
-                    <td className="px-4 py-4 font-semibold text-[rgba(0,0,0,0.85)]">¥{order.amount.toLocaleString()}</td>
-                    <td className="px-4 py-4"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusMap[order.status]?.color || ''}`}>{statusMap[order.status]?.label || order.status}</span></td>
-                    <td className="px-4 py-4"><div className="flex items-center gap-2"><div className="w-20 h-2 bg-[#F0F0F0] rounded-full"><div className="h-2 rounded-full bg-[#00B578]" style={{ width: `${order.progress}%` }} /></div><span className="text-xs text-[rgba(0,0,0,0.45)]">{order.progress}%</span></div></td>
-                    <td className="px-4 py-4 text-[rgba(0,0,0,0.45)]">{order.deadline ? new Date(order.deadline).toLocaleDateString('zh-CN') : '-'}</td>
-                    <td className="px-4 py-4">
-                      <div className="flex gap-1">
-                        <button className="p-1.5 hover:bg-[#F5F5F5] rounded"><Eye className="w-4 h-4 text-[rgba(0,0,0,0.45)]" /></button>
-                        <button className="p-1.5 hover:bg-[#F5F5F5] rounded"><Edit className="w-4 h-4 text-[rgba(0,0,0,0.45)]" /></button>
-                        {order.status === 'pending' && (
-                          <button onClick={() => setPayOrder(order)} className="p-1.5 hover:bg-[#E8F8F0] rounded" title="确认收款"><DollarSign className="w-4 h-4 text-[#00B578]" /></button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {filtered.length === 0 && <div className="text-center py-12 text-[rgba(0,0,0,0.45)]">暂无订单</div>}
-        </div>
-
-        {/* Mobile cards */}
-        <div className="md:hidden space-y-3">
-          {filtered.map(order => (
-            <div key={order.id} className="bg-white rounded-xl border border-[#E8E8E8] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-mono text-[rgba(0,0,0,0.45)]">{order.orderNo}</span>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusMap[order.status]?.color || ''}`}>{statusMap[order.status]?.label || order.status}</span>
+        <div className="space-y-3">
+          {filtered.map(order => {
+            const config = statusConfig[order.status] || statusConfig.pending
+            return (
+              <div key={order.id} className="bg-white rounded-xl border border-[#E8E8E8] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${config.color}`}>{config.label}</span>
+                      <span className="text-xs text-[rgba(0,0,0,0.45)]">#{order.orderNo}</span>
+                    </div>
+                    <h3 className="font-semibold text-[rgba(0,0,0,0.85)]">{order.title}</h3>
+                    {order.description && <p className="text-sm text-[rgba(0,0,0,0.45)] mt-1">{order.description}</p>}
+                    <div className="flex items-center gap-4 mt-2 text-sm text-[rgba(0,0,0,0.45)]">
+                      {order.client && <span>客户: {order.client.name}</span>}
+                      {order.service && <span>服务: {order.service.name}</span>}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-[rgba(0,0,0,0.85)]">¥{order.amount.toLocaleString()}</p>
+                    {order.progress > 0 && <div className="w-24 bg-[#F0F0F0] rounded-full h-1.5 mt-2"><div className="bg-[#00B578] h-1.5 rounded-full" style={{width:`${order.progress}%`}} /></div>}
+                  </div>
+                </div>
               </div>
-              <h3 className="font-medium text-[rgba(0,0,0,0.85)] mb-1">{order.title}</h3>
-              <p className="text-sm text-[rgba(0,0,0,0.45)]">{order.client?.name || '-'} · ¥{order.amount.toLocaleString()}</p>
-              <div className="flex items-center gap-2 mt-3">
-                <div className="flex-1 h-2 bg-[#F0F0F0] rounded-full"><div className="h-2 rounded-full bg-[#00B578]" style={{ width: `${order.progress}%` }} /></div>
-                <span className="text-xs text-[rgba(0,0,0,0.45)]">{order.progress}%</span>
-              </div>
-              {order.status === 'pending' && (
-                <button onClick={() => setPayOrder(order)} className="mt-3 w-full py-2 bg-[#00B578] text-white rounded-lg text-sm font-medium hover:bg-[#009A63] flex items-center justify-center gap-2">
-                  <DollarSign className="w-4 h-4" />确认收款
-                </button>
-              )}
-            </div>
-          ))}
+            )
+          })}
         </div>
 
-        {filtered.length === 0 && <div className="text-center py-12 text-[rgba(0,0,0,0.45)] md:hidden">暂无订单</div>}
+        {filtered.length === 0 && (<div className="text-center py-12"><FileText className="w-12 h-12 text-[rgba(0,0,0,0.15)] mx-auto mb-4" /><h3 className="text-base font-medium">暂无订单</h3><p className="text-sm text-[rgba(0,0,0,0.45)] mt-1">点击"新建订单"添加</p></div>)}
       </div>
 
-      <PaymentModal open={!!payOrder} onClose={() => setPayOrder(null)} order={payOrder} onSuccess={fetchOrders} />
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-5"><h2 className="text-lg font-bold">新建订单</h2><button onClick={() => setShowModal(false)} className="p-1 hover:bg-[#F5F5F5] rounded-lg"><X className="w-5 h-5" /></button></div>
+            <div className="space-y-4">
+              <div><label className="block text-sm font-medium mb-1">订单标题 *</label><input type="text" value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="如：XX公司品牌设计" className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm" /></div>
+              <div><label className="block text-sm font-medium mb-1">订单描述</label><textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={3} placeholder="描述订单内容" className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm resize-none" /></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="block text-sm font-medium mb-1">金额 (元)</label><input type="number" value={form.amount} onChange={e => setForm({...form, amount: Number(e.target.value)})} min={0} className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm" /></div>
+                <div><label className="block text-sm font-medium mb-1">截止日期</label><input type="date" value={form.deadline} onChange={e => setForm({...form, deadline: e.target.value})} className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm" /></div>
+              </div>
+              <div><label className="block text-sm font-medium mb-1">关联客户</label><select value={form.clientId} onChange={e => setForm({...form, clientId: e.target.value})} className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm"><option value="">选择客户（可选）</option>{clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+              <div><label className="block text-sm font-medium mb-1">关联服务</label><select value={form.serviceId} onChange={e => setForm({...form, serviceId: e.target.value})} className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm"><option value="">选择服务（可选）</option>{services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6"><button onClick={() => setShowModal(false)} className="px-4 py-2.5 border border-[#D9D9D9] rounded-lg text-sm hover:bg-[#F5F5F5]">取消</button><button onClick={handleCreate} disabled={submitting} className="px-4 py-2.5 bg-[#00B578] text-white rounded-lg text-sm hover:bg-[#009A63] disabled:opacity-50">{submitting ? '创建中...' : '创建'}</button></div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

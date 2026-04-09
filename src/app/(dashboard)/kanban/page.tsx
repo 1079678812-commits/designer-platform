@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { useAuth } from '@/lib/useAuth'
-import { Plus, MoreVertical, FileText } from 'lucide-react'
+import { Plus, MoreVertical, FileText, X } from 'lucide-react'
 
 interface KanbanCard { id: string; orderNo: string; title: string; status: string; progress: number; amount: number; client?: { name: string } }
 
@@ -18,15 +18,32 @@ const columns = [
 export default function KanbanPage() {
   const { user, loading: authLoading } = useAuth()
   const [orders, setOrders] = useState<KanbanCard[]>([])
+  const [clients, setClients] = useState<{id:string,name:string}[]>([])
   const [loading, setLoading] = useState(true)
+  const [showModal, setShowModal] = useState(false)
+  const [form, setForm] = useState({ title: '', description: '', amount: 0, deadline: '', clientId: '' })
+  const [submitting, setSubmitting] = useState(false)
 
-  useEffect(() => { if (user) fetchOrders() }, [user])
+  useEffect(() => { if (user) { fetchOrders(); fetchClients(); } }, [user])
 
   const fetchOrders = async () => {
+    try { const res = await fetch('/api/orders'); if (res.ok) { const data = await res.json(); setOrders(Array.isArray(data) ? data : data.orders || []) } } catch {} finally { setLoading(false) }
+  }
+  const fetchClients = async () => {
+    try { const res = await fetch('/api/clients'); if (res.ok) { const data = await res.json(); setClients(Array.isArray(data) ? data : data.clients || []) } } catch {}
+  }
+
+  const handleCreate = async () => {
+    if (!form.title.trim()) return alert('请输入项目标题')
+    setSubmitting(true)
     try {
-      const res = await fetch('/api/orders')
-      if (res.ok) { const data = await res.json(); setOrders(Array.isArray(data) ? data : data.orders || []) }
-    } catch (err) { console.error(err) } finally { setLoading(false) }
+      const body: any = { title: form.title, description: form.description, amount: form.amount }
+      if (form.deadline) body.deadline = new Date(form.deadline).toISOString()
+      if (form.clientId) body.clientId = form.clientId
+      const res = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      if (res.ok) { setShowModal(false); setForm({ title: '', description: '', amount: 0, deadline: '', clientId: '' }); fetchOrders() }
+      else { const data = await res.json(); alert(data.error || '创建失败') }
+    } catch { alert('网络错误') } finally { setSubmitting(false) }
   }
 
   if (authLoading || loading) return (<div className="flex min-h-screen bg-[#F5F5F5]"><Sidebar /><div className="flex-1 flex items-center justify-center"><div className="w-10 h-10 border-[3px] border-[#00B578] border-t-transparent rounded-full animate-spin" /></div></div>)
@@ -40,7 +57,7 @@ export default function KanbanPage() {
             <h1 className="text-xl md:text-2xl font-bold text-[rgba(0,0,0,0.85)]">项目管理</h1>
             <p className="text-sm text-[rgba(0,0,0,0.45)] mt-1">看板视图 · {orders.length} 个项目</p>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2.5 bg-[#00B578] text-white rounded-lg font-medium hover:bg-[#009A63] text-sm"><Plus className="w-4 h-4" /> 新建项目</button>
+          <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2.5 bg-[#00B578] text-white rounded-lg font-medium hover:bg-[#009A63] text-sm"><Plus className="w-4 h-4" /> 新建项目</button>
         </div>
 
         <div className="flex gap-4 md:gap-6 overflow-x-auto pb-4" style={{ minHeight: 'calc(100vh - 180px)' }}>
@@ -81,6 +98,24 @@ export default function KanbanPage() {
           })}
         </div>
       </div>
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6">
+            <div className="flex justify-between items-center mb-5"><h2 className="text-lg font-bold">新建项目</h2><button onClick={() => setShowModal(false)} className="p-1 hover:bg-[#F5F5F5] rounded-lg"><X className="w-5 h-5" /></button></div>
+            <div className="space-y-4">
+              <div><label className="block text-sm font-medium mb-1">项目标题 *</label><input type="text" value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="如：XX公司品牌设计" className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm" /></div>
+              <div><label className="block text-sm font-medium mb-1">项目描述</label><textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={3} placeholder="描述项目内容" className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm resize-none" /></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="block text-sm font-medium mb-1">金额 (元)</label><input type="number" value={form.amount} onChange={e => setForm({...form, amount: Number(e.target.value)})} min={0} className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm" /></div>
+                <div><label className="block text-sm font-medium mb-1">截止日期</label><input type="date" value={form.deadline} onChange={e => setForm({...form, deadline: e.target.value})} className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm" /></div>
+              </div>
+              <div><label className="block text-sm font-medium mb-1">关联客户</label><select value={form.clientId} onChange={e => setForm({...form, clientId: e.target.value})} className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm"><option value="">选择客户（可选）</option>{clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6"><button onClick={() => setShowModal(false)} className="px-4 py-2.5 border border-[#D9D9D9] rounded-lg text-sm hover:bg-[#F5F5F5]">取消</button><button onClick={handleCreate} disabled={submitting} className="px-4 py-2.5 bg-[#00B578] text-white rounded-lg text-sm hover:bg-[#009A63] disabled:opacity-50">{submitting ? '创建中...' : '创建'}</button></div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
