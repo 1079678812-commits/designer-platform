@@ -25,8 +25,20 @@ export default function PDFThumbnail({ url, name, size = 'md', onClick }: PDFThu
       className={`${sizeMap[size]} rounded-lg overflow-hidden cursor-pointer hover:shadow-[0_2px_8px_rgba(0,0,0,0.15)] transition-all relative flex-shrink-0`}
       style={{ background: 'linear-gradient(180deg, #EF6B5E 0%, #E8635A 55%, rgba(255,255,255,0.85) 55%, #F5F0EE 100%)' }}
     >
-      {/* Glass highlight */}
-      <div className="absolute top-0 left-0 right-0 h-[55%]" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.05) 50%, rgba(0,0,0,0.03) 100%)' }} />
+      {/* Glass highlight with diagonal line */}
+      <div className="absolute top-0 left-0 right-0 h-[55%]" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.05) 50%, rgba(0,0,0,0.03) 100%)' }}>
+        {/* Diagonal reflection line */}
+        <div style={{
+          position: 'absolute',
+          top: '15%',
+          left: '20%',
+          width: '60%',
+          height: '1.5px',
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)',
+          transform: 'rotate(35deg)',
+          transformOrigin: 'center',
+        }} />
+      </div>
       <div className="absolute inset-0 flex items-end justify-center pb-[8%]">
         <span className={`${textSize[size]} font-extrabold text-[#C0392B] tracking-wider relative z-10`}>PDF</span>
       </div>
