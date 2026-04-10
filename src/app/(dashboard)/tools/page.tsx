@@ -40,11 +40,15 @@ export default function ToolsPage() {
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
+    let existing: ToolApp[] = []
     if (saved) {
-      try { setTools(JSON.parse(saved)) } catch { setTools(DEFAULT_TOOLS) }
-    } else {
-      setTools(DEFAULT_TOOLS)
+      try { existing = JSON.parse(saved) } catch { existing = [] }
     }
+    // Merge: add new default tools that don't exist yet (by id)
+    const existingIds = new Set(existing.map(t => t.id))
+    const merged = [...DEFAULT_TOOLS.filter(t => !existingIds.has(t.id)), ...existing]
+    setTools(merged)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
   }, [])
 
   const saveTools = (newTools: ToolApp[]) => {
