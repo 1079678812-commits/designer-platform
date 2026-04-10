@@ -16,6 +16,8 @@ const DEFAULT_TOOLS: ToolApp[] = [
   { id: 'vcg', name: '视觉中国', description: '正版创意图片、视频素材库', url: 'https://www.vcg.com/' },
   { id: 'zcool', name: '站酷', description: '设计师作品分享与灵感社区', url: 'https://www.zcool.com.cn/' },
   { id: 'unsplash', name: 'Unsplash', description: '免费高质量照片素材库', url: 'https://unsplash.com/' },
+  { id: 'jimeng', name: '即梦AI', description: 'AI 图片与视频生成工具', url: 'https://jimeng.jianying.com/' },
+  { id: 'iconfont', name: '图标库', description: '阿里巴巴矢量图标资源平台', url: 'https://www.iconfont.cn/' },
 ]
 
 const STORAGE_KEY = 'designer_tools'
@@ -99,7 +101,7 @@ export default function ToolsPage() {
         </div>
 
         {tools.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
             {tools.map(tool => {
               const favicon = getFaviconUrl(tool.url)
               return (
