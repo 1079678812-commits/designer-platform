@@ -145,13 +145,9 @@ export default function KanbanPage() {
                 <button className="p-1 hover:bg-[#F5F5F5] rounded"><MoreVertical className="w-3.5 h-3.5 text-[rgba(0,0,0,0.45)]" /></button>
               </div>
               <h4 className="font-medium text-[rgba(0,0,0,0.85)] text-sm mb-2">{card.title}</h4>
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2">
                 <div className="flex-1 h-1.5 bg-[#F0F0F0] rounded-full"><div className="h-1.5 bg-[#00B578] rounded-full" style={{ width: `${card.progress}%` }} /></div>
                 <span className="text-xs text-[rgba(0,0,0,0.45)]">{card.progress}%</span>
-              </div>
-              <div className="flex items-center justify-between text-xs text-[rgba(0,0,0,0.45)]">
-                <span className="flex items-center gap-1">{card.logo && <img src={card.logo} alt="" className="w-4 h-4 rounded-full object-contain bg-[#FAFAFA]" />}{card.client?.name || '-'}</span>
-                <span className="font-medium text-[rgba(0,0,0,0.85)]">¥{card.amount.toLocaleString()}</span>
               </div>
             </div>
           ))}
