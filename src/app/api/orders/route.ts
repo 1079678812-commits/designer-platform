@@ -12,7 +12,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
     const orders = await prisma.order.findMany({
       where,
       include: { client: true, service: true, items: { orderBy: { id: 'asc' } } },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
     })
     return NextResponse.json({ orders })
   } catch (err) {

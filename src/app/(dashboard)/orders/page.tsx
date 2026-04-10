@@ -217,12 +217,16 @@ export default function OrdersPage() {
   const statusOrder: Record<string, number> = { pending: 0, confirmed: 1, in_progress: 2, review: 3, cancelled: 4, completed: 5 }
   const filtered = orders.filter(o => o.title.toLowerCase().includes(search.toLowerCase()) || o.orderNo.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
-      // Custom sortOrder takes priority (lower = higher, 0 = unset)
-      if (a.sortOrder > 0 && b.sortOrder > 0) return a.sortOrder - b.sortOrder
-      if (a.sortOrder > 0) return -1
-      if (b.sortOrder > 0) return 1
-      // Fallback: status-based ordering
-      return (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9)
+      // Respect sortOrder: items with sortOrder > 0 come first, sorted by sortOrder
+      const aHas = (a.sortOrder ?? 0) > 0
+      const bHas = (b.sortOrder ?? 0) > 0
+      if (aHas && bHas) return a.sortOrder - b.sortOrder
+      if (aHas) return -1
+      if (bHas) return 1
+      // For items without custom order, fallback to status + createdAt
+      const statusDiff = (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9)
+      if (statusDiff !== 0) return statusDiff
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     })
 
   if (authLoading || loading) return (<div className="flex min-h-screen bg-[#F5F5F5]"><Sidebar /><div className="flex-1 flex items-center justify-center"><div className="w-10 h-10 border-[3px] border-[#00B578] border-t-transparent rounded-full animate-spin" /></div></div>)
@@ -276,7 +280,26 @@ export default function OrdersPage() {
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${config.color}`}>{config.label}</span>
+                            <div className="relative group">
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium cursor-pointer ${config.color}`}>{config.label} ▾</span>
+                              <select
+                                value={order.status}
+                                onChange={e => {
+                                  const newStatus = e.target.value
+                                  setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: newStatus } : o))
+                                  fetch(`/api/orders/${order.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus }) }).catch(() => fetchOrders())
+                                }}
+                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                style={{ fontSize: '12px' }}
+                              >
+                                <option value="pending">待确认</option>
+                                <option value="confirmed">已确认</option>
+                                <option value="in_progress">进行中</option>
+                                <option value="review">修改中</option>
+                                <option value="completed">已完成</option>
+                                <option value="cancelled">已取消</option>
+                              </select>
+                            </div>
                             <span className="text-xs text-[rgba(0,0,0,0.45)]">#{order.orderNo}</span>
                           </div>
                           <h3 className="font-semibold text-[rgba(0,0,0,0.85)]">{order.title}</h3>
