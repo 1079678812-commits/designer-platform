@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Briefcase, Users, FileText, Settings,
   Bell, HelpCircle, LogOut, Receipt, FileSignature,
-  Menu, X, Shield, MessageCircle, Wallet, Palette
+  Menu, X, Shield, MessageCircle, Wallet, Palette, Wrench
 } from 'lucide-react'
 import { useAuth } from '@/lib/useAuth'
 
@@ -27,6 +27,7 @@ const menuItems = [
   { icon: FileSignature, label: '合同管理', href: '/contracts' },
   { icon: Receipt, label: '发票管理', href: '/invoices' },
   { icon: Wallet, label: '收入与数据', href: '/income' },
+  { icon: Wrench, label: '提效工具', href: '/tools' },
   { icon: Bell, label: '消息中心', href: '/messages' },
   { icon: Palette, label: '作品集', href: '/works' },
   { icon: Settings, label: '设置', href: '/settings' },
