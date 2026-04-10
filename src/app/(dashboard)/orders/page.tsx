@@ -300,7 +300,7 @@ export default function OrdersPage() {
                                 <option value="cancelled">已取消</option>
                               </select>
                             </div>
-                            <span className="text-xs text-[rgba(0,0,0,0.45)]">#{order.orderNo}</span>
+                            {order.service && <span className="text-xs text-[rgba(0,0,0,0.45)]">{order.service.name}</span>}
                           </div>
                           <h3 className="font-semibold text-[rgba(0,0,0,0.85)]">{order.title}</h3>
                           {order.description && <p className="text-sm text-[rgba(0,0,0,0.45)] mt-1 line-clamp-1">{order.description}</p>}
@@ -315,7 +315,6 @@ export default function OrdersPage() {
                                 {order.client.name}
                               </span>
                             )}
-                            {order.service && <span>服务: {order.service.name}</span>}
                           </div>
                         </div>
                         <div className="flex items-start gap-2 sm:text-right">
