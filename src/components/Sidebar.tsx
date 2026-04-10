@@ -36,7 +36,7 @@ const menuItems = [
   { icon: Kanban, label: '项目管理', href: '/kanban' },
   { icon: FileSignature, label: '合同管理', href: '/contracts' },
   { icon: Receipt, label: '发票管理', href: '/invoices' },
-  { icon: Wallet, label: '收入与数据', href: '/income' },
+  { icon: Wallet, label: '收入数据', href: '/income' },
   { icon: ToolBox, label: '提效工具', href: '/tools' },
   { icon: Bell, label: '消息中心', href: '/messages' },
   { icon: Palette, label: '作品集', href: '/works' },
