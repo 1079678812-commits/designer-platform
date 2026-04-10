@@ -1,22 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifySession } from '@/lib/session'
+import { withAuth, AuthenticatedRequest } from '@/lib/withAuth'
 import { prisma } from '@/lib/prisma'
 
-export async function PUT(request: NextRequest) {
+export const PUT = withAuth(async (req: AuthenticatedRequest) => {
   try {
-    const sessionId = request.cookies.get('session-id')?.value
-    const session = await verifySession(sessionId)
-    if (!session) return NextResponse.json({ error: '未登录' }, { status: 401 })
-
-    const { orders } = await request.json() as { orders: { id: string; sortOrder: number }[] }
+    const { orders } = await req.json() as { orders: { id: string; sortOrder: number }[] }
     if (!Array.isArray(orders) || orders.length === 0) {
       return NextResponse.json({ error: '无效数据' }, { status: 400 })
     }
 
-    // Update sortOrder for each order
+    // Verify all orders belong to this user, then update
     await Promise.all(
       orders.map(({ id, sortOrder }) =>
-        prisma.order.update({ where: { id, designerId: session.userId }, data: { sortOrder } })
+        prisma.order.updateMany({ where: { id, designerId: req.user.userId }, data: { sortOrder } })
       )
     )
 
@@ -25,4 +21,4 @@ export async function PUT(request: NextRequest) {
     console.error('Reorder error:', error)
     return NextResponse.json({ error: '排序更新失败' }, { status: 500 })
   }
-}
+})
