@@ -3,13 +3,14 @@
 import { useState, useEffect, useRef } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { useAuth } from '@/lib/useAuth'
-import { Search, Plus, Edit, Trash2, FileText, X, ChevronDown, ChevronUp, Upload, Receipt, FileSignature } from 'lucide-react'
+import { Search, Plus, Edit, Trash2, FileText, X, ChevronDown, ChevronUp, Upload, Receipt, FileSignature, GripVertical } from 'lucide-react'
 
 interface OrderItem { id?: string; name: string; quantity: number; unitPrice: number; subtotal: number }
 
 interface Order {
   id: string; orderNo: string; title: string; description: string; status: string
   amount: number; progress: number; deadline: string | null; createdAt: string
+  sortOrder: number
   client?: { name: string; logo?: string }; service?: { name: string }
   items?: OrderItem[]
 }
@@ -40,6 +41,10 @@ export default function OrdersPage() {
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set())
   const [logoUploading, setLogoUploading] = useState(false)
   const logoInputRef = useRef<HTMLInputElement>(null)
+
+  // Drag & drop reorder state
+  const [dragOrderId, setDragOrderId] = useState<string | null>(null)
+  const [dragOverOrderId, setDragOverOrderId] = useState<string | null>(null)
 
   useEffect(() => { if (user) { fetchOrders(); fetchClients(); fetchServices(); } }, [user])
 
@@ -152,9 +157,73 @@ export default function OrdersPage() {
     setExpandedOrders(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
   }
 
+  // Drag & drop reorder handlers
+  const handleOrderDragStart = (e: React.DragEvent, orderId: string) => {
+    setDragOrderId(orderId)
+    e.dataTransfer.setData('text/plain', orderId)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleOrderDragEnd = () => {
+    setDragOrderId(null)
+    setDragOverOrderId(null)
+  }
+
+  const handleOrderDragOver = (e: React.DragEvent, orderId: string) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (dragOverOrderId !== orderId) setDragOverOrderId(orderId)
+  }
+
+  const handleOrderDrop = async (e: React.DragEvent, targetId: string) => {
+    e.preventDefault()
+    const sourceId = e.dataTransfer.getData('text/plain')
+    setDragOverOrderId(null)
+    setDragOrderId(null)
+    if (!sourceId || sourceId === targetId) return
+
+    // Find indices in filtered list
+    const sourceIdx = filtered.findIndex(o => o.id === sourceId)
+    const targetIdx = filtered.findIndex(o => o.id === targetId)
+    if (sourceIdx === -1 || targetIdx === -1) return
+
+    // Optimistic reorder: move source to target position
+    const reordered = [...filtered]
+    const [moved] = reordered.splice(sourceIdx, 1)
+    reordered.splice(targetIdx, 0, moved)
+
+    // Assign new sortOrder values (start from 1)
+    const updates = reordered.map((o, i) => ({ id: o.id, sortOrder: i + 1 }))
+
+    // Update local state optimistically
+    setOrders(prev => {
+      const orderMap = new Map(updates.map(u => [u.id, u.sortOrder]))
+      return prev.map(o => ({ ...o, sortOrder: orderMap.get(o.id) ?? o.sortOrder }))
+    })
+
+    // Persist to server
+    try {
+      await fetch('/api/orders/reorder', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orders: updates }),
+      })
+    } catch {
+      // Revert on failure
+      fetchOrders()
+    }
+  }
+
   const statusOrder: Record<string, number> = { pending: 0, confirmed: 1, in_progress: 2, review: 3, cancelled: 4, completed: 5 }
   const filtered = orders.filter(o => o.title.toLowerCase().includes(search.toLowerCase()) || o.orderNo.toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) => (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9))
+    .sort((a, b) => {
+      // Custom sortOrder takes priority (lower = higher, 0 = unset)
+      if (a.sortOrder > 0 && b.sortOrder > 0) return a.sortOrder - b.sortOrder
+      if (a.sortOrder > 0) return -1
+      if (b.sortOrder > 0) return 1
+      // Fallback: status-based ordering
+      return (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9)
+    })
 
   if (authLoading || loading) return (<div className="flex min-h-screen bg-[#F5F5F5]"><Sidebar /><div className="flex-1 flex items-center justify-center"><div className="w-10 h-10 border-[3px] border-[#00B578] border-t-transparent rounded-full animate-spin" /></div></div>)
 
@@ -177,9 +246,23 @@ export default function OrdersPage() {
             const hasItems = order.items && order.items.length > 0
             const expanded = expandedOrders.has(order.id)
             return (
-              <div key={order.id} className="bg-white rounded-xl border border-[#E8E8E8] shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+              <div key={order.id}
+                draggable
+                onDragStart={e => handleOrderDragStart(e, order.id)}
+                onDragEnd={handleOrderDragEnd}
+                onDragOver={e => handleOrderDragOver(e, order.id)}
+                onDragLeave={() => setDragOverOrderId(null)}
+                onDrop={e => handleOrderDrop(e, order.id)}
+                className={`bg-white rounded-xl border transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.06)] ${
+                  dragOverOrderId === order.id ? 'border-[#00B578] border-2 shadow-[0_0_0_2px_rgba(0,181,120,0.2)]' : 'border-[#E8E8E8]'
+                } ${dragOrderId === order.id ? 'opacity-50' : ''}`}
+              >
                 <div className="p-5">
                   <div className="flex items-start gap-4">
+                    {/* Drag handle */}
+                    <div className="flex-shrink-0 cursor-grab active:cursor-grabbing pt-1 text-[rgba(0,0,0,0.15)] hover:text-[rgba(0,0,0,0.35)] transition-colors" title="拖拽排序">
+                      <GripVertical className="w-5 h-5" />
+                    </div>
                     {/* Logo - 左侧独立圆形框 */}
                     <div className="flex-shrink-0">
                       {(order as any).logo ? (

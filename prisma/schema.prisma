@@ -84,6 +84,7 @@ model Order {
   designerId String
   serviceId  String?
   logo       String?   // 项目/公司 Logo（独立于客户）
+  sortOrder  Int       @default(0) // 用户自定义排序，0=未设置
 
   client   Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
   designer User     @relation("DesignerOrders", fields: [designerId], references: [id], onDelete: Cascade)
