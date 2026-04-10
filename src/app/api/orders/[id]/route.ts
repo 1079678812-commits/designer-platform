@@ -48,7 +48,7 @@ export const PUT = withAuth(async (req: AuthenticatedRequest, { params }: { para
       await prisma.orderDesigner.deleteMany({ where: { orderId: id } })
       if (designerIds.length > 0) {
         await prisma.orderDesigner.createMany({
-          data: designerIds.map((uid: string) => ({ orderId: id, userId: uid })),
+          data: designerIds.map((sid: string) => ({ orderId: id, supplierId: sid })),
         })
       }
     }

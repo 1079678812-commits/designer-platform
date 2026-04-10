@@ -30,7 +30,6 @@ model User {
   receivedMessages Message[]  @relation("ReceivedMessages")
   notifications   Notification[]
   portfolios      Portfolio[]
-  orderDesigners  OrderDesigner[]
 }
 
 model Service {
@@ -60,6 +59,7 @@ model Client {
   phone     String?
   avatar    String?
   logo      String?   // 客户公司 Logo
+  type      String   @default("client") // client | supplier
   status    String   @default("active")
   designerId String
   createdAt DateTime @default(now())
@@ -67,6 +67,7 @@ model Client {
 
   designer User   @relation(fields: [designerId], references: [id], onDelete: Cascade)
   orders   Order[]
+  suppliedOrders OrderDesigner[]
 }
 
 model Order {
@@ -110,12 +111,12 @@ model OrderItem {
 }
 
 model OrderDesigner {
-  orderId String
-  userId  String
-  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId   String
+  supplierId String // references Client (supplier)
+  order     Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  supplier  Client @relation(fields: [supplierId], references: [id], onDelete: Cascade)
 
-  @@id([orderId, userId])
+  @@id([orderId, supplierId])
 }
 
 model Contract {

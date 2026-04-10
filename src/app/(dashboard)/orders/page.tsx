@@ -13,7 +13,7 @@ interface Order {
   sortOrder: number
   client?: { name: string; logo?: string }; service?: { name: string }
   items?: OrderItem[]
-  orderDesigners?: { user: { id: string; name: string; avatar: string | null } }[]
+  orderDesigners?: { supplier: { id: string; name: string; logo: string | null; company: string | null } }[]
 }
 
 const statusConfig: Record<string, { label: string; color: string }> = {
@@ -32,7 +32,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [clients, setClients] = useState<{id:string,name:string}[]>([])
   const [services, setServices] = useState<{id:string,name:string}[]>([])
-  const [allDesigners, setAllDesigners] = useState<{id:string,name:string,avatar:string|null}[]>([])
+  const [allDesigners, setAllDesigners] = useState<{id:string,name:string,avatar:string|null,company:string|null}[]>([])
   const [formDesignerIds, setFormDesignerIds] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -147,7 +147,7 @@ export default function OrdersPage() {
       clientId: (order as any).clientId || '', serviceId: (order as any).serviceId || '',
       status: order.status, progress: order.progress, logo: (order as any).logo || '',
     })
-    setFormDesignerIds((order.orderDesigners || []).map(d => d.user.id))
+    setFormDesignerIds((order.orderDesigners || []).map(d => d.supplier.id))
     setItems(order.items && order.items.length > 0 ? order.items : [emptyItem()])
     setShowModal(true)
   }
@@ -316,11 +316,11 @@ export default function OrdersPage() {
                             {order.orderDesigners && order.orderDesigners.length > 0 && (
                               <div className="flex items-center -space-x-2">
                                 {order.orderDesigners.map((d, i) => (
-                                  <div key={d.user.id} title={d.user.name} className="relative" style={{ zIndex: order.orderDesigners!.length - i }}>
-                                    {d.user.avatar ? (
-                                      <img src={d.user.avatar} alt={d.user.name} className="w-7 h-7 rounded-full border-2 border-white object-cover" />
+                                  <div key={d.supplier.id} title={d.supplier.name} className="relative" style={{ zIndex: order.orderDesigners!.length - i }}>
+                                    {d.supplier.logo ? (
+                                      <img src={d.supplier.logo} alt={d.supplier.name} className="w-7 h-7 rounded-full border-2 border-white object-cover" />
                                     ) : (
-                                      <div className="w-7 h-7 rounded-full border-2 border-white bg-gradient-to-br from-[#00B578] to-[#009A63] flex items-center justify-center text-white text-xs font-medium">{d.user.name[0]}</div>
+                                      <div className="w-7 h-7 rounded-full border-2 border-white bg-gradient-to-br from-[#00B578] to-[#009A63] flex items-center justify-center text-white text-xs font-medium">{d.supplier.name[0]}</div>
                                     )}
                                   </div>
                                 ))}

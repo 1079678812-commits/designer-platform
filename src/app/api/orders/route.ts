@@ -15,7 +15,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
         client: true,
         service: true,
         items: { orderBy: { id: 'asc' } },
-        orderDesigners: { include: { user: { select: { id: true, name: true, avatar: true } } } },
+        orderDesigners: { include: { supplier: { select: { id: true, name: true, logo: true, company: true } } } },
       },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
     })
@@ -52,10 +52,10 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
           }))
         } : undefined,
         orderDesigners: designerIds && designerIds.length > 0 ? {
-          create: designerIds.map((uid: string) => ({ userId: uid }))
+          create: designerIds.map((sid: string) => ({ supplierId: sid }))
         } : undefined,
       },
-      include: { items: true, orderDesigners: { include: { user: { select: { id: true, name: true, avatar: true } } } } },
+      include: { items: true, orderDesigners: { include: { supplier: { select: { id: true, name: true, logo: true, company: true } } } } },
     })
 
     // Auto-create a draft contract linked to this order
