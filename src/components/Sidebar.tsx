@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Briefcase, Users, FileText, Settings,
   Bell, HelpCircle, LogOut, Receipt, FileSignature,
-  Menu, X, Shield, MessageCircle, Wallet, Palette, Wrench
+  Menu, X, Shield, MessageCircle, Wallet, Palette
 } from 'lucide-react'
 import { useAuth } from '@/lib/useAuth'
 
@@ -15,6 +15,15 @@ const Kanban = ({ className }: { className?: string }) => (
     <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
     <rect x="7" y="7" width="3" height="10" />
     <rect x="14" y="7" width="3" height="7" />
+  </svg>
+)
+
+const ToolBox = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="10" width="20" height="11" rx="2" />
+    <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+    <circle cx="12" cy="15.5" r="1.5" />
+    <path d="M12 17v2" />
   </svg>
 )
 
@@ -27,7 +36,7 @@ const menuItems = [
   { icon: FileSignature, label: '合同管理', href: '/contracts' },
   { icon: Receipt, label: '发票管理', href: '/invoices' },
   { icon: Wallet, label: '收入与数据', href: '/income' },
-  { icon: Wrench, label: '提效工具', href: '/tools' },
+  { icon: ToolBox, label: '提效工具', href: '/tools' },
   { icon: Bell, label: '消息中心', href: '/messages' },
   { icon: Palette, label: '作品集', href: '/works' },
   { icon: Settings, label: '设置', href: '/settings' },
