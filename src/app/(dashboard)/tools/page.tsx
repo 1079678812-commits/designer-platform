@@ -110,7 +110,7 @@ export default function ToolsPage() {
                   <div className="flex items-start gap-4">
                     <div
                       onClick={() => handleOpen(tool.url)}
-                      className="w-12 h-12 rounded-xl bg-[#F5F5F5] flex items-center justify-center flex-shrink-0 cursor-pointer group-hover:bg-[#E8F8F0] transition-colors overflow-hidden"
+                      className="w-12 h-12 rounded-xl bg-white border border-[#E8E8E8] flex items-center justify-center flex-shrink-0 cursor-pointer group-hover:border-[#00B578]/30 group-hover:bg-[#E8F8F0] transition-colors overflow-hidden"
                     >
                       {favicon ? (
                         <img src={favicon} alt="" className="w-7 h-7 object-contain" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).parentElement!.innerHTML = `<span class="text-lg font-bold text-[rgba(0,0,0,0.15)]">${tool.name[0]}</span>` }} />
