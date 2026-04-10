@@ -336,6 +336,8 @@ export default function OrdersPage() {
                                   type="range"
                                   min={0} max={100}
                                   value={order.progress}
+                                  onMouseDown={e => e.stopPropagation()}
+                                  onTouchStart={e => e.stopPropagation()}
                                   onChange={e => {
                                     const val = Number(e.target.value)
                                     setOrders(prev => prev.map(o => o.id === order.id ? {...o, progress: val} : o))
