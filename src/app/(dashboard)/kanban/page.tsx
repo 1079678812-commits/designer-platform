@@ -5,7 +5,7 @@ import Sidebar from '@/components/Sidebar'
 import { useAuth } from '@/lib/useAuth'
 import { Plus, MoreVertical, FileText, X, ChevronLeft, ChevronRight } from 'lucide-react'
 
-interface KanbanCard { id: string; orderNo: string; title: string; status: string; progress: number; amount: number; client?: { name: string }; logo?: string }
+interface KanbanCard { id: string; orderNo: string; title: string; status: string; progress: number; amount: number; client?: { name: string }; logo?: string; service?: { name: string } }
 
 const columns = [
   { key: 'pending', label: '待办', color: 'border-t-[#FAAD14]' },
@@ -141,7 +141,7 @@ export default function KanbanPage() {
               className={`bg-white p-4 rounded-lg border border-[#E8E8E8] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-shadow cursor-grab active:cursor-grabbing ${draggingId === card.id ? 'opacity-50' : ''}`}
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-[rgba(0,0,0,0.45)] font-mono">{card.orderNo}</span>
+                <span className="text-xs text-[rgba(0,0,0,0.45)]">{card.service?.name || ''}</span>
                 <button className="p-1 hover:bg-[#F5F5F5] rounded"><MoreVertical className="w-3.5 h-3.5 text-[rgba(0,0,0,0.45)]" /></button>
               </div>
               <h4 className="font-medium text-[rgba(0,0,0,0.85)] text-sm mb-2">{card.title}</h4>
