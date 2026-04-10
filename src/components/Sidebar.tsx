@@ -20,9 +20,11 @@ const Kanban = ({ className }: { className?: string }) => (
 
 const ToolBox = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="2" y="10" width="20" height="11" rx="2" />
-    <path d="M8 10V7a4 4 0 0 1 8 0v3" />
-    <line x1="12" y1="14" x2="12" y2="17" />
+    <path d="M3 9l9-7 9 7" />
+    <path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9" />
+    <path d="M12 3v3" />
+    <path d="M9 15l3-3 3 3" />
+    <path d="M9 18l3-3 3 3" />
   </svg>
 )
 
