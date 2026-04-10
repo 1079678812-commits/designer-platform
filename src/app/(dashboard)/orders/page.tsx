@@ -310,17 +310,16 @@ export default function OrdersPage() {
                             </div>
                             {order.service && <span className="text-xs text-[rgba(0,0,0,0.45)]">{order.service.name}</span>}
                           </div>
-                          <h3 className="font-semibold text-[rgba(0,0,0,0.85)]">{order.title}</h3>
-                          <div className="flex items-center gap-2 mt-2">
-                            {/* Designers avatars */}
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-[rgba(0,0,0,0.85)]">{order.title}</h3>
                             {order.orderDesigners && order.orderDesigners.length > 0 && (
-                              <div className="flex items-center -space-x-2">
+                              <div className="flex items-center -space-x-1.5">
                                 {order.orderDesigners.map((d, i) => (
                                   <div key={d.supplier.id} title={d.supplier.name} className="relative" style={{ zIndex: order.orderDesigners!.length - i }}>
                                     {d.supplier.logo ? (
-                                      <img src={d.supplier.logo} alt={d.supplier.name} className="w-7 h-7 rounded-full border-2 border-white object-cover" />
+                                      <img src={d.supplier.logo} alt={d.supplier.name} className="w-5 h-5 rounded-full border border-white object-cover" />
                                     ) : (
-                                      <div className="w-7 h-7 rounded-full border-2 border-white bg-gradient-to-br from-[#00B578] to-[#009A63] flex items-center justify-center text-white text-xs font-medium">{d.supplier.name[0]}</div>
+                                      <div className="w-5 h-5 rounded-full border border-white bg-gradient-to-br from-[#00B578] to-[#009A63] flex items-center justify-center text-white text-[8px] font-medium">{d.supplier.name[0]}</div>
                                     )}
                                   </div>
                                 ))}
