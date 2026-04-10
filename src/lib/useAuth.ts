@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 
 export interface AuthUser {
@@ -8,6 +8,8 @@ export interface AuthUser {
   email: string
   name: string
   role: string
+  title?: string
+  avatar?: string
 }
 
 export function useAuth(requireAuth = true) {
@@ -15,32 +17,25 @@ export function useAuth(requireAuth = true) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    let cancelled = false
-    const fetchUser = async () => {
-      try {
-        const res = await fetch('/api/auth/session')
-        if (res.ok) {
-          const data = await res.json()
-          if (!cancelled) setUser(data.user)
-        } else {
-          if (!cancelled) {
-            setUser(null)
-            if (requireAuth) router.push('/login')
-          }
-        }
-      } catch {
-        if (!cancelled) {
-          setUser(null)
-          if (requireAuth) router.push('/login')
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
+  const fetchUser = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/session')
+      if (res.ok) {
+        const data = await res.json()
+        setUser(data.user)
+      } else {
+        setUser(null)
+        if (requireAuth) router.push('/login')
       }
+    } catch {
+      setUser(null)
+      if (requireAuth) router.push('/login')
+    } finally {
+      setLoading(false)
     }
-    fetchUser()
-    return () => { cancelled = true }
   }, [requireAuth, router])
+
+  useEffect(() => { fetchUser() }, [fetchUser])
 
   const logout = async () => {
     await fetch('/api/auth/session', { method: 'DELETE' })
@@ -48,5 +43,15 @@ export function useAuth(requireAuth = true) {
     router.push('/login')
   }
 
-  return { user, loading, logout }
+  const refresh = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/session')
+      if (res.ok) {
+        const data = await res.json()
+        setUser(data.user)
+      }
+    } catch {}
+  }, [])
+
+  return { user, loading, logout, refresh }
 }

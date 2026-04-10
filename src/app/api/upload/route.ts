@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth, AuthenticatedRequest } from '@/lib/withAuth'
 import { uploadFile } from '@/lib/upload-service'
 
+export const config = {
+  api: { bodyParser: { sizeLimit: '50mb' } },
+}
+
+export const maxDuration = 60
+
 const ALLOWED_TYPES = [
   'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
   'application/pdf',
@@ -17,7 +23,7 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
     const category = formData.get('category') as string || 'general'
 
     if (!file) return NextResponse.json({ error: '请选择文件' }, { status: 400 })
-    if (file.size > 20 * 1024 * 1024) return NextResponse.json({ error: '文件大小不能超过20MB' }, { status: 400 })
+    if (file.size > 50 * 1024 * 1024) return NextResponse.json({ error: '文件大小不能超过50MB' }, { status: 400 })
     if (!ALLOWED_TYPES.includes(file.type) && !file.type.startsWith('image/')) {
       return NextResponse.json({ error: '不支持的文件类型' }, { status: 400 })
     }

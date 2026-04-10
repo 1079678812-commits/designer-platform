@@ -42,6 +42,7 @@ npm install lightningcss-linux-x64-gnu @tailwindcss/oxide-linux-x64-gnu --no-sav
 
 echo "🔧 生成 Prisma Client..."
 npx prisma generate 2>&1 | tail -2
+npx prisma db push --accept-data-loss 2>&1 | tail -3
 
 echo "🏗️ 构建项目..."
 npx next build 2>&1 | tail -10

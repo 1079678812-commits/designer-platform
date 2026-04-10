@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { useAuth } from '@/lib/useAuth'
-import { Search, Plus, Edit, Trash2, Eye, Star, TrendingUp, Clock, CheckCircle, XCircle, Briefcase, X } from 'lucide-react'
+import { Search, Plus, Edit, Trash2, Eye, Star, TrendingUp, Clock, CheckCircle, XCircle, Briefcase, X, Upload, Camera } from 'lucide-react'
 
-interface Service { id: string; name: string; description: string; category: string; price: number; status: string; tags: string; orderCount: number; rating: number; createdAt: string }
+interface Service { id: string; name: string; description: string; category: string; price: number; status: string; tags: string; orderCount: number; rating: number; coverImage?: string; createdAt: string }
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
   active: { label: '已上架', color: 'text-[#52C41A] bg-[#F6FFED] border border-[#B7EB8F]', icon: CheckCircle },
@@ -22,8 +22,13 @@ export default function ServicesPage() {
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [showModal, setShowModal] = useState(false)
-  const [form, setForm] = useState({ name: '', description: '', category: '品牌设计', price: 0, tags: '' })
+  const [form, setForm] = useState({ name: '', description: '', category: '品牌设计', price: 0, tags: '', status: 'active', coverImage: '' })
   const [submitting, setSubmitting] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [coverUploading, setCoverUploading] = useState<string | null>(null)
+  const coverInputRef = useRef<HTMLInputElement>(null)
+  const coverTargetRef = useRef<string>('')
+  const modalCoverRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { if (user) fetchServices() }, [user])
 
@@ -34,24 +39,71 @@ export default function ServicesPage() {
     } catch (err) { console.error(err) } finally { setLoading(false) }
   }
 
+  const handleCoverUpload = async (serviceId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setCoverUploading(serviceId)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('category', 'service-cover')
+      const res = await fetch('/api/upload', { method: 'POST', body: fd })
+      if (res.ok) {
+        const data = await res.json()
+        const coverUrl = data.file.url
+        await fetch(`/api/services/${serviceId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ coverImage: coverUrl }) })
+        setServices(prev => prev.map(s => s.id === serviceId ? { ...s, coverImage: coverUrl } : s))
+      } else { alert('上传失败') }
+    } catch { alert('上传失败') }
+    finally { setCoverUploading(null); if (coverInputRef.current) coverInputRef.current.value = '' }
+  }
+
+  const handleModalCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setCoverUploading('modal')
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('category', 'service-cover')
+      const res = await fetch('/api/upload', { method: 'POST', body: fd })
+      if (res.ok) {
+        const data = await res.json()
+        setForm(f => ({ ...f, coverImage: data.file.url }))
+      } else { alert('上传失败') }
+    } catch { alert('上传失败') }
+    finally { setCoverUploading(null); if (modalCoverRef.current) modalCoverRef.current.value = '' }
+  }
+
   const handleCreate = async () => {
     if (!form.name.trim()) return alert('请输入服务名称')
     setSubmitting(true)
     try {
-      const res = await fetch('/api/services', {
-        method: 'POST',
+      const url = editingId ? `/api/services/${editingId}` : '/api/services'
+      const method = editingId ? 'PUT' : 'POST'
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       })
       if (res.ok) {
         setShowModal(false)
-        setForm({ name: '', description: '', category: '品牌设计', price: 0, tags: '' })
+        setForm({ name: '', description: '', category: '品牌设计', price: 0, tags: '', status: 'active', coverImage: '' })
+        setEditingId(null)
         fetchServices()
       } else {
         const data = await res.json()
-        alert(data.error || '创建失败')
+        alert(data.error || '操作失败')
       }
     } catch { alert('网络错误') } finally { setSubmitting(false) }
+  }
+
+  const handleEdit = (service: Service) => {
+    setEditingId(service.id)
+    let tags = ''
+    try { tags = JSON.parse(service.tags).join(',') } catch { tags = service.tags || '' }
+    setForm({ name: service.name, description: service.description, category: service.category, price: service.price, tags, status: service.status, coverImage: (service as any).coverImage || '' })
+    setShowModal(true)
   }
 
   const handleDelete = async (id: string) => {
@@ -81,9 +133,9 @@ export default function ServicesPage() {
             <h1 className="text-xl md:text-2xl font-bold text-[rgba(0,0,0,0.85)]">我的服务</h1>
             <p className="text-sm text-[rgba(0,0,0,0.45)] mt-1">管理你的设计服务，展示专业能力</p>
           </div>
-          <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2.5 bg-[#00B578] text-white rounded-lg font-medium hover:bg-[#009A63] transition-colors text-sm">
-            <Plus className="w-4 h-4" /> 新建服务
-          </button>
+            <button onClick={() => { setEditingId(null); setForm({ name: '', description: '', category: '品牌设计', price: 0, tags: '', status: 'active', coverImage: '' }); setShowModal(true) }} className="flex items-center gap-2 px-4 py-2.5 bg-[#00B578] text-white rounded-lg font-medium hover:bg-[#009A63] transition-colors text-sm">
+              <Plus className="w-4 h-4" /> 新建服务
+            </button>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
@@ -91,7 +143,7 @@ export default function ServicesPage() {
             { label: '总服务数', value: services.length, icon: Briefcase },
             { label: '已上架', value: services.filter(s => s.status === 'active').length, icon: CheckCircle },
             { label: '总订单数', value: services.reduce((s, sv) => s + sv.orderCount, 0), icon: TrendingUp },
-            { label: '平均评分', value: (services.filter(s => s.rating > 0).reduce((s, sv) => s + sv.rating, 0) / (services.filter(s => s.rating > 0).length || 1)).toFixed(1), icon: Star },
+
           ].map(s => (
             <div key={s.label} className="bg-white p-4 md:p-6 rounded-xl border border-[#E8E8E8] shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
               <div className="flex items-center justify-between">
@@ -120,36 +172,57 @@ export default function ServicesPage() {
           </div>
         </div>
 
+        <input ref={coverInputRef} type="file" accept="image/*" onChange={e => { const sid = coverTargetRef.current; if (sid) handleCoverUpload(sid, e) }} className="hidden" />
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
           {filtered.map(service => {
             const config = statusConfig[service.status] || statusConfig.draft
             const StatusIcon = config.icon
+            const cover = (service as any).coverImage
             let tags: string[] = []
             try { tags = JSON.parse(service.tags) } catch { tags = [] }
             return (
-              <div key={service.id} className="bg-white rounded-xl border border-[#E8E8E8] p-5 md:p-6 shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-shadow">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${config.color}`}><StatusIcon className="w-3 h-3 inline mr-1" />{config.label}</span>
-                      <span className="px-2 py-0.5 bg-[#F5F5F5] text-[rgba(0,0,0,0.45)] rounded-full text-xs">{service.category}</span>
+              <div key={service.id} className="bg-white rounded-xl border border-[#E8E8E8] overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-shadow flex">
+                {/* Left: Content */}
+                <div className="w-1/3 p-4 md:p-5 min-w-0 flex flex-col justify-between">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${config.color}`}><StatusIcon className="w-3 h-3 inline mr-1" />{config.label}</span>
+                    <span className="px-2 py-0.5 bg-[#F5F5F5] text-[rgba(0,0,0,0.45)] rounded-full text-xs">{service.category}</span>
+                  </div>
+                  <h3 className="text-base font-semibold text-[rgba(0,0,0,0.85)] mb-1">{service.name}</h3>
+                  <p className="text-sm text-[rgba(0,0,0,0.45)] line-clamp-2">{service.description}</p>
+                  {tags.length > 0 && <div className="flex flex-wrap gap-1.5 mt-2">{tags.map((t: string) => <span key={t} className="px-2 py-0.5 bg-[#F5F5F5] text-[rgba(0,0,0,0.45)] rounded text-xs">{t}</span>)}</div>}
+                  <div className="flex items-center justify-between pt-4 mt-3 border-t border-[#F0F0F0]">
+                    <div className="flex items-center gap-4 md:gap-6 text-sm">
+                      <div><p className="text-xs text-[rgba(0,0,0,0.45)]">价格</p><p className="font-bold text-[rgba(0,0,0,0.85)]">¥{service.price.toLocaleString()}</p></div>
+                      <div className="flex items-center gap-1"><p className="text-xs text-[rgba(0,0,0,0.45)]">订单</p><p className="font-bold text-[rgba(0,0,0,0.85)]">{service.orderCount}</p></div>
+
+
                     </div>
-                    <h3 className="text-base font-semibold text-[rgba(0,0,0,0.85)]">{service.name}</h3>
-                    <p className="text-sm text-[rgba(0,0,0,0.45)] mt-1 line-clamp-2">{service.description}</p>
+                    <div className="flex items-center gap-1">
+                      <button className="p-2 hover:bg-[#F5F5F5] rounded-lg text-[rgba(0,0,0,0.45)]"><Eye className="w-4 h-4" /></button>
+                      <button onClick={() => handleEdit(service)} className="p-2 hover:bg-[#F5F5F5] rounded-lg text-[rgba(0,0,0,0.45)]"><Edit className="w-4 h-4" /></button>
+                      <button onClick={() => handleDelete(service.id)} className="p-2 hover:bg-[#FFF2F0] rounded-lg text-[#FF4D4F]"><Trash2 className="w-4 h-4" /></button>
+                    </div>
                   </div>
                 </div>
-                {tags.length > 0 && <div className="flex flex-wrap gap-1.5 mb-4">{tags.map((t: string) => <span key={t} className="px-2 py-0.5 bg-[#F5F5F5] text-[rgba(0,0,0,0.45)] rounded text-xs">{t}</span>)}</div>}
-                <div className="flex items-center justify-between pt-4 border-t border-[#F0F0F0]">
-                  <div className="flex items-center gap-4 md:gap-6 text-sm">
-                    <div><p className="text-xs text-[rgba(0,0,0,0.45)]">价格</p><p className="font-bold text-[rgba(0,0,0,0.85)]">¥{service.price.toLocaleString()}</p></div>
-                    <div><p className="text-xs text-[rgba(0,0,0,0.45)]">订单</p><p className="font-bold text-[rgba(0,0,0,0.85)]">{service.orderCount}</p></div>
-                    <div><p className="text-xs text-[rgba(0,0,0,0.45)]">评分</p><div className="flex items-center gap-1"><Star className="w-3 h-3 text-[#FAAD14] fill-current" /><span className="font-bold text-[rgba(0,0,0,0.85)]">{service.rating}</span></div></div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button className="p-2 hover:bg-[#F5F5F5] rounded-lg text-[rgba(0,0,0,0.45)]"><Eye className="w-4 h-4" /></button>
-                    <button className="p-2 hover:bg-[#F5F5F5] rounded-lg text-[rgba(0,0,0,0.45)]"><Edit className="w-4 h-4" /></button>
-                    <button onClick={() => handleDelete(service.id)} className="p-2 hover:bg-[#FFF2F0] rounded-lg text-[#FF4D4F]"><Trash2 className="w-4 h-4" /></button>
-                  </div>
+                {/* Right: Cover Image */}
+                <div className="relative w-2/3 flex-shrink-0 bg-white group">
+                  {cover ? (
+                    <img src={cover} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Briefcase className="w-8 h-8 text-[rgba(0,0,0,0.08)]" />
+                    </div>
+                  )}
+                  <button
+                    onClick={() => { coverTargetRef.current = service.id; coverInputRef.current?.click() }}
+                    disabled={coverUploading === service.id}
+                    className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                    title="上传封面"
+                  >
+                    {coverUploading === service.id ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Camera className="w-5 h-5 text-white drop-shadow" />}
+                  </button>
                 </div>
               </div>
             )
@@ -165,15 +238,43 @@ export default function ServicesPage() {
         )}
       </div>
 
-      {/* 新建服务弹窗 */}
+      {/* 新建/编辑服务弹窗 */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg p-6">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-5">
-              <h2 className="text-lg font-bold text-[rgba(0,0,0,0.85)]">新建服务</h2>
-              <button onClick={() => setShowModal(false)} className="p-1 hover:bg-[#F5F5F5] rounded-lg"><X className="w-5 h-5" /></button>
+              <h2 className="text-lg font-bold text-[rgba(0,0,0,0.85)]">{editingId ? '编辑服务' : '新建服务'}</h2>
+              <button onClick={() => { setShowModal(false); setEditingId(null) }} className="p-1 hover:bg-[#F5F5F5] rounded-lg"><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-4">
+              {/* Cover image upload */}
+              <div>
+                <label className="block text-sm font-medium text-[rgba(0,0,0,0.85)] mb-1">封面图片</label>
+                <div className="relative w-full h-32 rounded-xl overflow-hidden border border-[#E8E8E8] bg-gradient-to-br from-[#E8F8F0] to-[#F5F5F5]">
+                  {form.coverImage ? (
+                    <img src={form.coverImage} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <div className="text-center text-[rgba(0,0,0,0.25)]">
+                        <Upload className="w-6 h-6 mx-auto mb-1" />
+                        <p className="text-xs">上传封面图片</p>
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => modalCoverRef.current?.click()}
+                    disabled={coverUploading === 'modal'}
+                    className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center disabled:opacity-50"
+                  >
+                    {coverUploading === 'modal' && <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                  </button>
+                  {form.coverImage && (
+                    <button onClick={() => setForm(f => ({...f, coverImage: ''}))} className="absolute top-2 right-2 w-6 h-6 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center transition-colors"><X className="w-3.5 h-3.5" /></button>
+                  )}
+                </div>
+                <input ref={modalCoverRef} type="file" accept="image/*" onChange={handleModalCoverUpload} className="hidden" />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-[rgba(0,0,0,0.85)] mb-1">服务名称 *</label>
                 <input type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="如：Logo设计" className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm" />
@@ -198,11 +299,21 @@ export default function ServicesPage() {
                 <label className="block text-sm font-medium text-[rgba(0,0,0,0.85)] mb-1">标签（逗号分隔）</label>
                 <input type="text" value={form.tags} onChange={e => setForm({...form, tags: e.target.value})} placeholder="如：Logo,品牌,VI" className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm" />
               </div>
+              {editingId && (
+                <div>
+                  <label className="block text-sm font-medium text-[rgba(0,0,0,0.85)] mb-1">状态</label>
+                  <select value={form.status} onChange={e => setForm({...form, status: e.target.value})} className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm">
+                    <option value="active">已上架</option>
+                    <option value="inactive">已下架</option>
+                    <option value="draft">草稿</option>
+                  </select>
+                </div>
+              )}
             </div>
             <div className="flex justify-end gap-3 mt-6">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2.5 border border-[#D9D9D9] rounded-lg text-sm hover:bg-[#F5F5F5]">取消</button>
+              <button onClick={() => { setShowModal(false); setEditingId(null) }} className="px-4 py-2.5 border border-[#D9D9D9] rounded-lg text-sm hover:bg-[#F5F5F5]">取消</button>
               <button onClick={handleCreate} disabled={submitting} className="px-4 py-2.5 bg-[#00B578] text-white rounded-lg text-sm hover:bg-[#009A63] disabled:opacity-50">
-                {submitting ? '创建中...' : '创建'}
+                {submitting ? '提交中...' : editingId ? '保存' : '创建'}
               </button>
             </div>
           </div>

@@ -110,6 +110,7 @@ export default function BannerCarousel() {
           <div className="w-full h-full flex flex-col items-center justify-center text-[rgba(0,0,0,0.25)]">
             <Upload className="w-8 h-8 mb-2" />
             <p className="text-sm">暂无轮播图片</p>
+            <p className="text-xs mt-1">建议尺寸：1920 × 440 像素</p>
             {editing && (
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -117,7 +118,7 @@ export default function BannerCarousel() {
                 className="mt-2 px-4 py-1.5 bg-[#00B578] text-white text-sm rounded-lg hover:bg-[#009A63] disabled:opacity-50 flex items-center gap-1"
               >
                 <Plus className="w-4 h-4" />
-                {uploading ? '上传中...' : '添加图片'}
+                {uploading ? '上传中...' : '添加图片（1920×440）'}
               </button>
             )}
           </div>
@@ -125,8 +126,8 @@ export default function BannerCarousel() {
           <>
             {/* Images */}
             <div
-              className="flex transition-transform duration-500 ease-in-out h-full"
-              style={{ transform: `translateX(-${current * 100}%)` }}
+              className={`flex h-full ${banners.length > 1 ? 'transition-transform duration-500 ease-in-out' : ''}`}
+              style={{ transform: banners.length > 1 ? `translateX(-${current * 100}%)` : undefined }}
             >
               {banners.map(banner => (
                 <a
@@ -218,7 +219,7 @@ export default function BannerCarousel() {
             className="text-xs text-[#00B578] hover:text-[#009A63] flex items-center gap-1 disabled:opacity-50"
           >
             <Plus className="w-3 h-3" />
-            {uploading ? '上传中...' : '添加图片'}
+            {uploading ? '上传中...' : '添加图片（1920×440）'}
           </button>
         )}
       </div>

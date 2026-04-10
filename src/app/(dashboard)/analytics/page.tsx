@@ -22,8 +22,9 @@ export default function AnalyticsPage() {
   useEffect(() => { if (user) fetchAnalytics() }, [user, period])
 
   const fetchAnalytics = async () => {
+    setLoading(true)
     try {
-      const res = await fetch('/api/analytics')
+      const res = await fetch(`/api/analytics?period=${period}`)
       if (res.ok) {
         const d = await res.json()
         setData(d)
@@ -35,9 +36,53 @@ export default function AnalyticsPage() {
     <div className="flex min-h-screen bg-[#F5F5F5]"><Sidebar /><div className="flex-1 flex items-center justify-center"><div className="w-10 h-10 border-[3px] border-[#00B578] border-t-transparent rounded-full animate-spin" /></div></div>
   )
 
+  const hasData = data && (
+    data.ordersByStatus.length > 0 ||
+    data.ordersByMonth.length > 0 ||
+    data.topServices.length > 0
+  )
+
+  if (!hasData) return (
+    <div className="flex min-h-screen bg-[#F5F5F5]">
+      <Sidebar />
+      <div className="flex-1 p-4 md:p-8">
+        <h1 className="text-xl md:text-2xl font-bold text-[rgba(0,0,0,0.85)] mb-2">数据分析</h1>
+        <p className="text-sm text-[rgba(0,0,0,0.45)] mb-6">深入了解你的业务表现</p>
+        <div className="flex flex-col items-center justify-center py-24">
+          <BarChart3 className="w-16 h-16 text-[rgba(0,0,0,0.1)] mb-4" />
+          <h3 className="text-lg font-medium text-[rgba(0,0,0,0.85)] mb-2">暂无数据</h3>
+          <p className="text-sm text-[rgba(0,0,0,0.45)]">完成订单后即可查看分析数据</p>
+        </div>
+      </div>
+    </div>
+  )
+
   const statusLabels: Record<string, string> = {
-    pending: '待确认', confirmed: '已确认', in_progress: '进行中', review: '审核中', completed: '已完成', cancelled: '已取消',
+    pending: '待确认', confirmed: '已确认', in_progress: '进行中', review: '修改中', completed: '已完成', cancelled: '已取消',
   }
+
+  const totalOrders = data?.ordersByStatus.reduce((s, o) => s + o.count, 0) || 0
+  const completedOrders = data?.ordersByStatus.find(o => o.status === 'completed')?.count || 0
+  const totalRevenue = data?.ordersByMonth.reduce((s, o) => s + o.revenue, 0) || 0
+  const activeClients = data?.clientStats.active || 0
+
+  // Calculate trends from monthly data
+  const months = data?.ordersByMonth || []
+  const currentMonth = months.length > 0 ? months[months.length - 1] : null
+  const prevMonth = months.length > 1 ? months[months.length - 2] : null
+
+  const calcTrend = (current: number, previous: number) => {
+    if (previous === 0) return current > 0 ? 100 : 0
+    return Math.round(((current - previous) / previous) * 100)
+  }
+
+  const orderTrend = prevMonth ? calcTrend(currentMonth?.count || 0, prevMonth.count) : 0
+  const completedTrend = prevMonth ? calcTrend(
+    currentMonth?.revenue || 0, prevMonth.revenue
+  ) : 0
+  const revenueTrend = prevMonth ? calcTrend(
+    currentMonth?.revenue || 0, prevMonth.revenue
+  ) : 0
 
   const maxBarValue = data?.ordersByStatus ? Math.max(...data.ordersByStatus.map(d => d.count), 1) : 1
 
@@ -63,24 +108,31 @@ export default function AnalyticsPage() {
         {/* Summary cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {[
-            { label: '总订单', value: data?.ordersByStatus.reduce((s, o) => s + o.count, 0) || 0, icon: FileCheck, trend: '+12%', up: true, color: '#00B578' },
-            { label: '已完成', value: data?.ordersByStatus.find(o => o.status === 'completed')?.count || 0, icon: TrendingUp, trend: '+8%', up: true, color: '#52C41A' },
-            { label: '总营收', value: `¥${(data?.ordersByMonth.reduce((s, o) => s + o.revenue, 0) || 0).toLocaleString()}`, icon: DollarSign, trend: '+23%', up: true, color: '#FAAD14' },
-            { label: '活跃客户', value: data?.clientStats.active || 0, icon: Users, trend: '+5%', up: true, color: '#1890FF' },
-          ].map(c => (
-            <div key={c.label} className="bg-white p-5 rounded-xl border border-[#E8E8E8]">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-[rgba(0,0,0,0.45)]">{c.label}</span>
-                <c.icon className="w-5 h-5" style={{ color: c.color }} />
+            { label: '总订单', value: totalOrders, icon: FileCheck, trend: orderTrend, color: '#00B578' },
+            { label: '已完成', value: completedOrders, icon: TrendingUp, trend: completedTrend, color: '#52C41A' },
+            { label: '总营收', value: `¥${totalRevenue.toLocaleString()}`, icon: DollarSign, trend: revenueTrend, color: '#FAAD14' },
+            { label: '活跃客户', value: activeClients, icon: Users, trend: 0, color: '#1890FF' },
+          ].map(c => {
+            const up = c.trend >= 0
+            return (
+              <div key={c.label} className="bg-white p-5 rounded-xl border border-[#E8E8E8]">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm text-[rgba(0,0,0,0.45)]">{c.label}</span>
+                  <c.icon className="w-5 h-5" style={{ color: c.color }} />
+                </div>
+                <p className="text-2xl font-bold text-[rgba(0,0,0,0.85)]">{c.value}</p>
+                <div className="flex items-center gap-1 mt-2">
+                  {c.trend !== 0 && (
+                    <>
+                      {up ? <ArrowUpRight className="w-3 h-3 text-[#52C41A]" /> : <ArrowDownRight className="w-3 h-3 text-[#FF4D4F]" />}
+                      <span className={`text-xs ${up ? 'text-[#52C41A]' : 'text-[#FF4D4F]'}`}>{up ? '+' : ''}{c.trend}%</span>
+                    </>
+                  )}
+                  <span className="text-xs text-[rgba(0,0,0,0.25)]">较上期</span>
+                </div>
               </div>
-              <p className="text-2xl font-bold text-[rgba(0,0,0,0.85)]">{c.value}</p>
-              <div className="flex items-center gap-1 mt-2">
-                {c.up ? <ArrowUpRight className="w-3 h-3 text-[#52C41A]" /> : <ArrowDownRight className="w-3 h-3 text-[#FF4D4F]" />}
-                <span className={`text-xs ${c.up ? 'text-[#52C41A]' : 'text-[#FF4D4F]'}`}>{c.trend}</span>
-                <span className="text-xs text-[rgba(0,0,0,0.25)]">较上期</span>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -178,7 +230,7 @@ export default function AnalyticsPage() {
           <h3 className="font-semibold text-[rgba(0,0,0,0.85)] mb-6">月度趋势</h3>
           {data?.ordersByMonth && data.ordersByMonth.length > 0 ? (
             <div className="flex items-end gap-2 h-48">
-              {data.ordersByMonth.map((m, i) => {
+              {data.ordersByMonth.map((m) => {
                 const maxCount = Math.max(...data.ordersByMonth.map(x => x.count), 1)
                 const height = (m.count / maxCount) * 100
                 return (

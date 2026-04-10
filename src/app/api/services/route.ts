@@ -7,8 +7,10 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
     const services = await prisma.service.findMany({
       where: { designerId: req.user.userId },
       orderBy: { createdAt: 'desc' },
+      include: { _count: { select: { orders: true } } },
     })
-    return NextResponse.json({ services })
+    const result = services.map(({ _count, ...s }) => ({ ...s, orderCount: _count.orders }))
+    return NextResponse.json({ services: result })
   } catch (err) {
     console.error(err)
     return NextResponse.json({ error: '获取服务列表失败' }, { status: 500 })
@@ -18,7 +20,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
 export const POST = withAuth(async (req: AuthenticatedRequest) => {
   try {
     const body = await req.json()
-    const { name, description, category, price, status, tags } = body
+    const { name, description, category, price, status, tags, coverImage } = body
 
     if (!name || !category || price === undefined) {
       return NextResponse.json({ error: '缺少必填字段' }, { status: 400 })
@@ -28,6 +30,7 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
       data: {
         name, description, category, price: Number(price),
         status: status || 'draft', tags: tags || '[]',
+        coverImage: coverImage || null,
         designerId: req.user.userId,
       },
     })

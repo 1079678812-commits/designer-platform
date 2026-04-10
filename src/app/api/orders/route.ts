@@ -11,7 +11,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
 
     const orders = await prisma.order.findMany({
       where,
-      include: { client: true, service: true },
+      include: { client: true, service: true, items: { orderBy: { id: 'asc' } } },
       orderBy: { createdAt: 'desc' },
     })
     return NextResponse.json({ orders })
@@ -24,7 +24,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
 export const POST = withAuth(async (req: AuthenticatedRequest) => {
   try {
     const body = await req.json()
-    const { title, description, amount, clientId, serviceId, deadline } = body
+    const { title, description, amount, clientId, serviceId, deadline, items } = body
 
     if (!title || amount === undefined) {
       return NextResponse.json({ error: '缺少必填字段' }, { status: 400 })
@@ -37,6 +37,26 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
         orderNo, title, description, amount: Number(amount),
         clientId: clientId || null, serviceId: serviceId || null,
         deadline: deadline ? new Date(deadline) : null,
+        designerId: req.user.userId,
+        items: items && items.length > 0 ? {
+          create: items.map((it: any) => ({
+            name: it.name,
+            quantity: Number(it.quantity) || 1,
+            unitPrice: Number(it.unitPrice) || 0,
+            subtotal: (Number(it.quantity) || 1) * (Number(it.unitPrice) || 0),
+          }))
+        } : undefined,
+      },
+      include: { items: true },
+    })
+
+    // Auto-create a draft contract linked to this order
+    await prisma.contract.create({
+      data: {
+        title: title,
+        amount: Number(amount),
+        status: 'draft',
+        orderId: order.id,
         designerId: req.user.userId,
       },
     })

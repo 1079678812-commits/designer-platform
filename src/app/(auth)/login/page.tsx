@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Briefcase, Eye, EyeOff } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -77,6 +78,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && <div className="p-3 bg-[#FFF2F0] border border-[#FFCCC7] rounded-lg text-sm text-[#FF4D4F]">{error}</div>}
+            {searchParams?.get('success') && <div className="p-3 bg-[#F6FFED] border border-[#B7EB8F] rounded-lg text-sm text-[#52C41A]">密码重置成功，请重新登录！</div>}
 
             <div>
               <label className="block text-sm font-medium text-[rgba(0,0,0,0.85)] mb-1.5">邮箱</label>
@@ -85,7 +87,10 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[rgba(0,0,0,0.85)] mb-1.5">密码</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-medium text-[rgba(0,0,0,0.85)]">密码</label>
+                <Link href="/reset-password" className="text-xs text-[#00B578] hover:text-[#009A63]">忘记密码？</Link>
+              </div>
               <div className="relative">
                 <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="请输入密码" required
                   className="w-full px-4 py-2.5 border border-[#D9D9D9] rounded-md text-sm placeholder:text-[rgba(0,0,0,0.25)] focus:outline-none focus:border-[#00B578] focus:ring-2 focus:ring-[#00B578]/20 transition-colors pr-10" />

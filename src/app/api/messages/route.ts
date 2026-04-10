@@ -1,14 +1,35 @@
 import { getSession, unauthorized, ok, error } from '@/lib/api-helpers'
 import { prisma } from '@/lib/prisma'
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const session = await getSession()
     if (!session) return unauthorized()
 
     const userId = (session.user as Record<string, unknown>).id as string
+    const { searchParams } = new URL(req.url)
+    const partnerId = searchParams.get('partnerId')
 
-    // Get conversation partners (unique users this user has exchanged messages with)
+    // If partnerId is provided, return messages with that partner
+    if (partnerId) {
+      const messages = await prisma.message.findMany({
+        where: {
+          OR: [
+            { senderId: userId, receiverId: partnerId },
+            { senderId: partnerId, receiverId: userId },
+          ],
+        },
+        orderBy: { createdAt: 'asc' },
+      })
+      // Mark unread messages as read
+      await prisma.message.updateMany({
+        where: { senderId: partnerId, receiverId: userId, read: false },
+        data: { read: true },
+      })
+      return ok(messages)
+    }
+
+    // Otherwise return conversation list
     const sentMessages = await prisma.message.findMany({
       where: { senderId: userId },
       select: { receiverId: true },
@@ -30,7 +51,6 @@ export async function GET() {
       select: { id: true, name: true, email: true, avatar: true },
     })
 
-    // Get last message with each partner and unread count
     const conversations = await Promise.all(
       partners.map(async (partner) => {
         const messages = await prisma.message.findMany({
@@ -45,18 +65,10 @@ export async function GET() {
         })
 
         const unreadCount = await prisma.message.count({
-          where: {
-            senderId: partner.id,
-            receiverId: userId,
-            read: false,
-          },
+          where: { senderId: partner.id, receiverId: userId, read: false },
         })
 
-        return {
-          partner,
-          lastMessage: messages[0] || null,
-          unreadCount,
-        }
+        return { partner, lastMessage: messages[0] || null, unreadCount }
       })
     )
 

@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Briefcase, Users, FileText, Settings,
   Bell, HelpCircle, LogOut, BarChart3, Receipt, FileSignature,
-  Menu, X, Shield
+  Menu, X, Shield, MessageCircle, Wallet, Palette
 } from 'lucide-react'
 import { useAuth } from '@/lib/useAuth'
 
@@ -27,7 +27,9 @@ const menuItems = [
   { icon: FileSignature, label: '合同管理', href: '/contracts' },
   { icon: Receipt, label: '发票管理', href: '/invoices' },
   { icon: BarChart3, label: '数据分析', href: '/analytics' },
-  { icon: Bell, label: '消息通知', href: '/notifications' },
+  { icon: Wallet, label: '收入统计', href: '/income' },
+  { icon: Bell, label: '消息中心', href: '/messages' },
+  { icon: Palette, label: '作品集', href: '/works' },
   { icon: Settings, label: '设置', href: '/settings' },
 ]
 
@@ -63,12 +65,16 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
 
       <div className="p-6 border-b border-[#F0F0F0]">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-[#00B578] to-[#009A63] rounded-full flex items-center justify-center text-white font-medium">
-            {user?.name?.[0] || 'D'}
-          </div>
+          {(user as any)?.avatar ? (
+            <img src={(user as any).avatar} alt="" className="w-10 h-10 rounded-full object-contain border border-[#E8E8E8] p-0.5 bg-[#FAFAFA]" />
+          ) : (
+            <div className="w-10 h-10 bg-gradient-to-br from-[#00B578] to-[#009A63] rounded-full flex items-center justify-center text-white font-medium">
+              {user?.name?.[0] || 'D'}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <p className="font-medium text-[rgba(0,0,0,0.85)] truncate">{user?.name || '设计师'}</p>
-            <p className="text-sm text-[rgba(0,0,0,0.45)] truncate">高级设计师</p>
+            <p className="text-sm text-[rgba(0,0,0,0.45)] truncate">{(user as any)?.title || '设计师'}</p>
           </div>
         </div>
       </div>

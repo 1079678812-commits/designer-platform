@@ -15,14 +15,14 @@ interface DashboardStats {
 
 interface RecentOrder {
   id: string; orderNo: string; title: string; status: string; amount: number; createdAt: string
-  client?: { name: string }
+  client?: { name: string }; logo?: string
 }
 
 const statusMap: Record<string, { label: string; color: string }> = {
   pending: { label: '待确认', color: 'text-[#FAAD14] bg-[#FFFBE6] border border-[#FFE58F]' },
   confirmed: { label: '已确认', color: 'text-[#00B578] bg-[#E8F8F0] border border-[#7EDCAA]' },
   in_progress: { label: '进行中', color: 'text-[#00B578] bg-[#E8F8F0] border border-[#7EDCAA]' },
-  review: { label: '审核中', color: 'text-[#722ED1] bg-[#F9F0FF] border border-[#D3ADF7]' },
+  review: { label: '修改中', color: 'text-[#722ED1] bg-[#F9F0FF] border border-[#D3ADF7]' },
   completed: { label: '已完成', color: 'text-[#52C41A] bg-[#F6FFED] border border-[#B7EB8F]' },
   cancelled: { label: '已取消', color: 'text-[#8C8C8C] bg-[#FAFAFA] border border-[#D9D9D9]' },
 }
@@ -53,10 +53,11 @@ export default function DashboardPage() {
         completedOrders: ol.filter((o: any) => o.status === 'completed').length,
         inProgressOrders: ol.filter((o: any) => o.status === 'in_progress').length,
         totalClients: cl.length,
-        totalRevenue: ol.filter((o: any) => o.status === 'completed').reduce((s: number, o: any) => s + o.amount, 0),
+        totalRevenue: ol.reduce((s: number, o: any) => s + o.amount, 0),
         avgRating: sl.length ? sl.reduce((s: number, sv: any) => s + sv.rating, 0) / sl.length : 0,
       })
-      setRecentOrders(ol.slice(0, 5))
+      const so: Record<string, number> = { pending: 0, confirmed: 1, in_progress: 2, review: 3, cancelled: 4, completed: 5 }
+      setRecentOrders(ol.sort((a: any, b: any) => (so[a.status] ?? 9) - (so[b.status] ?? 9)).slice(0, 6))
     } catch (err) { console.error(err) }
     finally { setLoading(false) }
   }
@@ -69,7 +70,7 @@ export default function DashboardPage() {
     { label: '总服务数', value: stats.totalServices, icon: Briefcase, change: `活跃 ${stats.activeServices}`, up: true },
     { label: '总订单数', value: stats.totalOrders, icon: FileText, change: `进行中 ${stats.inProgressOrders}`, up: true },
     { label: '客户总数', value: stats.totalClients, icon: Users, change: `${stats.pendingOrders} 待确认`, up: false },
-    { label: '总收入', value: `¥${stats.totalRevenue.toLocaleString()}`, icon: DollarSign, change: `${stats.completedOrders} 笔完成`, up: true },
+    { label: '总收入', value: `¥${stats.totalRevenue.toLocaleString()}`, icon: DollarSign, change: `共 ${stats.totalOrders} 笔订单`, up: true },
   ]
 
   return (
@@ -128,19 +129,26 @@ export default function DashboardPage() {
             <h2 className="text-base md:text-lg font-semibold text-[rgba(0,0,0,0.85)]">最近订单</h2>
             <a href="/orders" className="text-sm text-[#00B578] hover:text-[#009A63]">查看全部</a>
           </div>
-          <div className="divide-y divide-[#F0F0F0]">
-            {recentOrders.length === 0 && <div className="p-6 text-center text-[rgba(0,0,0,0.45)]">暂无订单</div>}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-0 md:gap-0">
+            {recentOrders.length === 0 && <div className="p-6 text-center text-[rgba(0,0,0,0.45)] col-span-2">暂无订单</div>}
             {recentOrders.map(order => {
               const s = statusMap[order.status] || statusMap.pending
               return (
-                <div key={order.id} className="p-4 md:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-[#FAFAFA] transition-colors">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-[rgba(0,0,0,0.85)] truncate">{order.title}</p>
-                    <p className="text-sm text-[rgba(0,0,0,0.45)] truncate">{order.orderNo} · {order.client?.name || '-'}</p>
+                <div key={order.id} className="p-4 md:p-5 flex items-center justify-between gap-2 hover:bg-[#FAFAFA] transition-colors border-b border-r border-[#F0F0F0]">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    {order.logo ? (
+                      <img src={order.logo} alt="" className="w-8 h-8 rounded-full object-contain border-2 border-[#E8E8E8] p-0.5 bg-[#FAFAFA] flex-shrink-0" />
+                    ) : (
+                      <div className="w-8 h-8 bg-[#F5F5F5] rounded-lg flex items-center justify-center text-xs font-bold text-[rgba(0,0,0,0.2)] flex-shrink-0">{order.title[0]}</div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="font-medium text-[rgba(0,0,0,0.85)] truncate text-sm">{order.title}</p>
+                      <p className="text-xs text-[rgba(0,0,0,0.45)] truncate">{order.orderNo} · {order.client?.name || '-'}</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-semibold text-[rgba(0,0,0,0.85)]">¥{order.amount.toLocaleString()}</span>
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${s.color}`}>{s.label}</span>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="font-semibold text-sm text-[rgba(0,0,0,0.85)]">¥{order.amount.toLocaleString()}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${s.color}`}>{s.label}</span>
                   </div>
                 </div>
               )

@@ -5,32 +5,55 @@ import { withAuth, AuthenticatedRequest } from '@/lib/withAuth'
 export const GET = withAuth(async (req: AuthenticatedRequest) => {
   try {
     const designerId = req.user.userId
+    const { searchParams } = new URL(req.url)
+    const period = searchParams.get('period') || 'month'
 
-    // Orders by status
+    // Calculate date range based on period
+    const now = new Date()
+    let startDate: Date
+    switch (period) {
+      case 'week':
+        startDate = new Date(now)
+        startDate.setDate(startDate.getDate() - 7)
+        break
+      case 'year':
+        startDate = new Date(now)
+        startDate.setFullYear(startDate.getFullYear() - 1)
+        break
+      default: // month
+        startDate = new Date(now)
+        startDate.setMonth(startDate.getMonth() - 1)
+    }
+
+    // For monthly trend, always get last 6 months
+    const sixMonthsAgo = new Date()
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
+
+    // Orders by status (filtered by period)
     const ordersByStatus = await prisma.order.groupBy({
       by: ['status'],
       _count: true,
-      where: { designerId },
+      where: { designerId, createdAt: { gte: startDate } },
     })
 
-    // Revenue by service category
-    const services = await prisma.service.findMany({
-      where: { designerId },
-      select: { category: true, price: true, orderCount: true },
+    // Top services & revenue by category — from real order data
+    const orderItems = await prisma.order.findMany({
+      where: { designerId, createdAt: { gte: startDate } },
+      select: { serviceId: true, amount: true, service: { select: { name: true, category: true } } },
     })
+    const serviceStats: Record<string, { name: string; orderCount: number; revenue: number }> = {}
     const revenueByCategory: Record<string, number> = {}
-    services.forEach(s => {
-      const rev = s.price * s.orderCount
-      revenueByCategory[s.category] = (revenueByCategory[s.category] || 0) + rev
+    orderItems.forEach(o => {
+      const key = o.serviceId || 'other'
+      if (!serviceStats[key]) serviceStats[key] = { name: o.service?.name || '其他', orderCount: 0, revenue: 0 }
+      serviceStats[key].orderCount++
+      serviceStats[key].revenue += o.amount
+      const cat = o.service?.category || '其他'
+      revenueByCategory[cat] = (revenueByCategory[cat] || 0) + o.amount
     })
-
-    // Top services
-    const topServices = await prisma.service.findMany({
-      where: { designerId },
-      select: { name: true, orderCount: true, price: true },
-      orderBy: { orderCount: 'desc' },
-      take: 5,
-    })
+    const topServices = Object.values(serviceStats)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5)
 
     // Client stats
     const [totalClients, activeClients] = await Promise.all([
@@ -38,9 +61,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
       prisma.client.count({ where: { designerId, status: 'active' } }),
     ])
 
-    // Monthly orders (last 6 months)
-    const sixMonthsAgo = new Date()
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
+    // Monthly orders (last 6 months for trend)
     const orders = await prisma.order.findMany({
       where: { designerId, createdAt: { gte: sixMonthsAgo } },
       select: { createdAt: true, amount: true, status: true },
@@ -60,7 +81,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([month, d]) => ({ month, ...d })),
       revenueByCategory: Object.entries(revenueByCategory).map(([category, revenue]) => ({ category, revenue })),
-      topServices: topServices.map(s => ({ name: s.name, orderCount: s.orderCount, revenue: s.price * s.orderCount })),
+      topServices,
       clientStats: { total: totalClients, active: activeClients, newThisMonth: 0 },
     })
   } catch (err) {
