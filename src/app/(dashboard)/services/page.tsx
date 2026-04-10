@@ -178,51 +178,27 @@ export default function ServicesPage() {
           {filtered.map(service => {
             const config = statusConfig[service.status] || statusConfig.draft
             const StatusIcon = config.icon
-            const cover = (service as any).coverImage
             let tags: string[] = []
             try { tags = JSON.parse(service.tags) } catch { tags = [] }
             return (
-              <div key={service.id} className="bg-white rounded-xl border border-[#E8E8E8] overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-shadow flex">
-                {/* Left: Content */}
-                <div className="w-1/3 p-4 md:p-5 min-w-0 flex flex-col justify-between">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${config.color}`}><StatusIcon className="w-3 h-3 inline mr-1" />{config.label}</span>
-                    <span className="px-2 py-0.5 bg-[#F5F5F5] text-[rgba(0,0,0,0.45)] rounded-full text-xs">{service.category}</span>
-                  </div>
-                  <h3 className="text-base font-semibold text-[rgba(0,0,0,0.85)] mb-1">{service.name}</h3>
-                  <p className="text-sm text-[rgba(0,0,0,0.45)] line-clamp-2">{service.description}</p>
-                  {tags.length > 0 && <div className="flex flex-wrap gap-1.5 mt-2">{tags.map((t: string) => <span key={t} className="px-2 py-0.5 bg-[#F5F5F5] text-[rgba(0,0,0,0.45)] rounded text-xs">{t}</span>)}</div>}
-                  <div className="flex items-center justify-between pt-4 mt-3 border-t border-[#F0F0F0]">
-                    <div className="flex items-center gap-4 md:gap-6 text-sm">
-                      <div><p className="text-xs text-[rgba(0,0,0,0.45)]">价格</p><p className="font-bold text-[rgba(0,0,0,0.85)]">¥{service.price.toLocaleString()}</p></div>
-                      <div className="flex items-center gap-1"><p className="text-xs text-[rgba(0,0,0,0.45)]">订单</p><p className="font-bold text-[rgba(0,0,0,0.85)]">{service.orderCount}</p></div>
-
-
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button className="p-2 hover:bg-[#F5F5F5] rounded-lg text-[rgba(0,0,0,0.45)]"><Eye className="w-4 h-4" /></button>
-                      <button onClick={() => handleEdit(service)} className="p-2 hover:bg-[#F5F5F5] rounded-lg text-[rgba(0,0,0,0.45)]"><Edit className="w-4 h-4" /></button>
-                      <button onClick={() => handleDelete(service.id)} className="p-2 hover:bg-[#FFF2F0] rounded-lg text-[#FF4D4F]"><Trash2 className="w-4 h-4" /></button>
-                    </div>
-                  </div>
+              <div key={service.id} className="bg-white rounded-xl border border-[#E8E8E8] overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-shadow p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${config.color}`}><StatusIcon className="w-3 h-3 inline mr-1" />{config.label}</span>
+                  <span className="px-2 py-0.5 bg-[#F5F5F5] text-[rgba(0,0,0,0.45)] rounded-full text-xs">{service.category}</span>
                 </div>
-                {/* Right: Cover Image */}
-                <div className="relative w-2/3 flex-shrink-0 bg-white group">
-                  {cover ? (
-                    <img src={cover} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Briefcase className="w-8 h-8 text-[rgba(0,0,0,0.08)]" />
-                    </div>
-                  )}
-                  <button
-                    onClick={() => { coverTargetRef.current = service.id; coverInputRef.current?.click() }}
-                    disabled={coverUploading === service.id}
-                    className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 disabled:opacity-50"
-                    title="上传封面"
-                  >
-                    {coverUploading === service.id ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Camera className="w-5 h-5 text-white drop-shadow" />}
-                  </button>
+                <h3 className="text-base font-semibold text-[rgba(0,0,0,0.85)] mb-1">{service.name}</h3>
+                <p className="text-sm text-[rgba(0,0,0,0.45)] line-clamp-2 mb-3">{service.description}</p>
+                {tags.length > 0 && <div className="flex flex-wrap gap-1.5 mb-3">{tags.map((t: string) => <span key={t} className="px-2 py-0.5 bg-[#F5F5F5] text-[rgba(0,0,0,0.45)] rounded text-xs">{t}</span>)}</div>}
+                <div className="flex items-center justify-between pt-3 border-t border-[#F0F0F0]">
+                  <div className="flex items-center gap-4 text-sm">
+                    <span className="font-bold text-[#00B578]">¥{service.price.toLocaleString()}</span>
+                    <span className="text-[rgba(0,0,0,0.45)]">·</span>
+                    <span className="text-[rgba(0,0,0,0.45)]">{service.orderCount} 单</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => handleEdit(service)} className="p-2 hover:bg-[#F5F5F5] rounded-lg text-[rgba(0,0,0,0.45)]"><Edit className="w-4 h-4" /></button>
+                    <button onClick={() => handleDelete(service.id)} className="p-2 hover:bg-[#FFF2F0] rounded-lg text-[#FF4D4F]"><Trash2 className="w-4 h-4" /></button>
+                  </div>
                 </div>
               </div>
             )
