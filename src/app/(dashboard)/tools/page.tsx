@@ -1,24 +1,75 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { useAuth } from '@/lib/useAuth'
-import { Wrench, Plus, Search } from 'lucide-react'
+import { Wrench, Plus, ExternalLink, Edit, Trash2, X, GripVertical } from 'lucide-react'
 
 interface ToolApp {
   id: string
   name: string
   description: string
   icon: string
-  href: string
-  status: 'active' | 'coming' | 'beta'
+  url: string
 }
 
-const tools: ToolApp[] = [
-  // 后续在这里添加小应用
+const DEFAULT_TOOLS: ToolApp[] = [
+  { id: 'vcg', name: '视觉中国', description: '正版创意图片、视频素材库', icon: '🎨', url: 'https://www.vcg.com/' },
+  { id: 'zcool', name: '站酷', description: '设计师作品分享与灵感社区', icon: '🔥', url: 'https://www.zcool.com.cn/' },
+  { id: 'unsplash', name: 'Unsplash', description: '免费高质量照片素材库', icon: '📸', url: 'https://unsplash.com/' },
 ]
+
+const STORAGE_KEY = 'designer_tools'
 
 export default function ToolsPage() {
   const { user, loading: authLoading } = useAuth()
+  const [tools, setTools] = useState<ToolApp[]>([])
+  const [showModal, setShowModal] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [form, setForm] = useState({ name: '', description: '', icon: '⚡', url: '' })
+
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      try { setTools(JSON.parse(saved)) } catch { setTools(DEFAULT_TOOLS) }
+    } else {
+      setTools(DEFAULT_TOOLS)
+    }
+  }, [])
+
+  const saveTools = (newTools: ToolApp[]) => {
+    setTools(newTools)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newTools))
+  }
+
+  const handleSave = () => {
+    if (!form.name.trim() || !form.url.trim()) return alert('请填写名称和网址')
+    if (editingId) {
+      saveTools(tools.map(t => t.id === editingId ? { ...t, ...form } : t))
+    } else {
+      saveTools([...tools, { id: `tool_${Date.now()}`, ...form }])
+    }
+    setShowModal(false)
+    setEditingId(null)
+    setForm({ name: '', description: '', icon: '⚡', url: '' })
+  }
+
+  const handleEdit = (tool: ToolApp) => {
+    setEditingId(tool.id)
+    setForm({ name: tool.name, description: tool.description, icon: tool.icon, url: tool.url })
+    setShowModal(true)
+  }
+
+  const handleDelete = (id: string) => {
+    if (!confirm('确定删除该工具？')) return
+    saveTools(tools.filter(t => t.id !== id))
+  }
+
+  const handleOpen = (url: string) => {
+    window.open(url, '_blank')
+  }
+
+  const iconOptions = ['⚡', '🎨', '🔥', '📸', '📊', '📝', '💬', '🎯', '🛠️', '💡', '🔍', '📋', '🗂️', '✏️', '📐', '🖥️', '📱', '🎬', '🎵', '🤖']
 
   if (authLoading) return (
     <div className="flex min-h-screen bg-[#F5F5F5]"><Sidebar /><div className="flex-1 flex items-center justify-center"><div className="w-10 h-10 border-[3px] border-[#00B578] border-t-transparent rounded-full animate-spin" /></div></div>
@@ -28,33 +79,50 @@ export default function ToolsPage() {
     <div className="flex min-h-screen bg-[#F5F5F5]">
       <Sidebar />
       <div className="flex-1 p-4 md:p-8 overflow-auto">
-        <div className="mb-8">
-          <h1 className="text-xl md:text-2xl font-bold text-[rgba(0,0,0,0.85)]">提效工具</h1>
-          <p className="text-sm text-[rgba(0,0,0,0.45)] mt-1">小应用集合，让你的工作更高效</p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-3">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-[rgba(0,0,0,0.85)]">提效工具</h1>
+            <p className="text-sm text-[rgba(0,0,0,0.45)] mt-1">常用工具和应用，一键直达</p>
+          </div>
+          <button
+            onClick={() => { setEditingId(null); setForm({ name: '', description: '', icon: '⚡', url: '' }); setShowModal(true) }}
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#00B578] text-white rounded-lg font-medium hover:bg-[#009A63] transition-colors text-sm"
+          >
+            <Plus className="w-4 h-4" /> 添加工具
+          </button>
         </div>
 
         {tools.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {tools.map(tool => (
-              <a
+              <div
                 key={tool.id}
-                href={tool.href}
-                className="bg-white rounded-xl border border-[#E8E8E8] p-5 hover:border-[#00B578]/30 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all group"
+                className="bg-white rounded-xl border border-[#E8E8E8] p-5 hover:border-[#00B578]/30 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all group relative"
               >
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-[#E8F8F0] flex items-center justify-center text-2xl flex-shrink-0 group-hover:bg-[#00B578] group-hover:text-white transition-colors">
+                  <div
+                    onClick={() => handleOpen(tool.url)}
+                    className="w-12 h-12 rounded-xl bg-[#E8F8F0] flex items-center justify-center text-2xl flex-shrink-0 cursor-pointer group-hover:bg-[#00B578] transition-colors"
+                  >
                     {tool.icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-[rgba(0,0,0,0.85)] text-sm">{tool.name}</h3>
-                      {tool.status === 'beta' && <span className="px-1.5 py-0.5 bg-[#FFFBE6] text-[#FAAD14] text-[10px] rounded font-medium">Beta</span>}
-                      {tool.status === 'coming' && <span className="px-1.5 py-0.5 bg-[#F5F5F5] text-[rgba(0,0,0,0.25)] text-[10px] rounded font-medium">即将上线</span>}
-                    </div>
-                    <p className="text-xs text-[rgba(0,0,0,0.45)] line-clamp-2">{tool.description}</p>
+                    <h3 className="font-semibold text-[rgba(0,0,0,0.85)] text-sm mb-1">{tool.name}</h3>
+                    <p className="text-xs text-[rgba(0,0,0,0.45)] line-clamp-2 mb-2">{tool.description}</p>
+                    <button
+                      onClick={() => handleOpen(tool.url)}
+                      className="inline-flex items-center gap-1 text-xs text-[#00B578] hover:text-[#009A63] font-medium"
+                    >
+                      <ExternalLink className="w-3 h-3" /> 打开
+                    </button>
                   </div>
                 </div>
-              </a>
+                {/* Edit/Delete buttons */}
+                <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => handleEdit(tool)} className="p-1.5 hover:bg-[#F5F5F5] rounded-lg text-[rgba(0,0,0,0.35)] hover:text-[rgba(0,0,0,0.65)]"><Edit className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => handleDelete(tool.id)} className="p-1.5 hover:bg-[#FFF2F0] rounded-lg text-[#FF4D4F]/50 hover:text-[#FF4D4F]"><Trash2 className="w-3.5 h-3.5" /></button>
+                </div>
+              </div>
             ))}
           </div>
         ) : (
@@ -63,10 +131,55 @@ export default function ToolsPage() {
               <Wrench className="w-10 h-10 text-[#00B578]" />
             </div>
             <h3 className="text-lg font-medium text-[rgba(0,0,0,0.85)] mb-2">提效工具箱</h3>
-            <p className="text-sm text-[rgba(0,0,0,0.45)] text-center max-w-md">这里将汇集各种实用小应用，帮你自动化重复工作、快速生成内容、简化流程。敬请期待！</p>
+            <p className="text-sm text-[rgba(0,0,0,0.45)]">点击右上角「添加工具」开始吧</p>
           </div>
         )}
       </div>
+
+      {/* Add/Edit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6">
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="text-lg font-bold text-[rgba(0,0,0,0.85)]">{editingId ? '编辑工具' : '添加工具'}</h2>
+              <button onClick={() => { setShowModal(false); setEditingId(null) }} className="p-1 hover:bg-[#F5F5F5] rounded-lg"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-4">
+              {/* Icon selector */}
+              <div>
+                <label className="block text-sm font-medium text-[rgba(0,0,0,0.85)] mb-2">图标</label>
+                <div className="flex flex-wrap gap-2">
+                  {iconOptions.map(emoji => (
+                    <button
+                      key={emoji}
+                      onClick={() => setForm({ ...form, icon: emoji })}
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg transition-colors ${form.icon === emoji ? 'bg-[#00B578] ring-2 ring-[#00B578]/30' : 'bg-[#F5F5F5] hover:bg-[#E8E8E8]'}`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[rgba(0,0,0,0.85)] mb-1">名称 *</label>
+                <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="如：Dribbble" className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[rgba(0,0,0,0.85)] mb-1">网址 *</label>
+                <input type="url" value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} placeholder="https://dribbble.com" className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[rgba(0,0,0,0.85)] mb-1">描述</label>
+                <input type="text" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="简短描述用途" className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button onClick={() => { setShowModal(false); setEditingId(null) }} className="px-4 py-2.5 border border-[#D9D9D9] rounded-lg text-sm hover:bg-[#F5F5F5]">取消</button>
+              <button onClick={handleSave} className="px-4 py-2.5 bg-[#00B578] text-white rounded-lg text-sm hover:bg-[#009A63]">{editingId ? '保存' : '添加'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
