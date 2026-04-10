@@ -30,6 +30,7 @@ model User {
   receivedMessages Message[]  @relation("ReceivedMessages")
   notifications   Notification[]
   portfolios      Portfolio[]
+  orderDesigners  OrderDesigner[]
 }
 
 model Service {
@@ -92,6 +93,7 @@ model Order {
   contracts Contract[]
   invoices  Invoice[]
   items     OrderItem[]
+  orderDesigners OrderDesigner[]
 }
 
 model OrderItem {
@@ -105,6 +107,15 @@ model OrderItem {
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
+}
+
+model OrderDesigner {
+  orderId String
+  userId  String
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([orderId, userId])
 }
 
 model Contract {

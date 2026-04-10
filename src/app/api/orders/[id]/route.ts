@@ -18,7 +18,7 @@ export const PUT = withAuth(async (req: AuthenticatedRequest, { params }: { para
   try {
     const { id } = await params
     const body = await req.json()
-    const { items, ...orderData } = body
+    const { items, designerIds, ...orderData } = body
 
     // Update order fields
     const order = await prisma.order.updateMany({
@@ -39,6 +39,16 @@ export const PUT = withAuth(async (req: AuthenticatedRequest, { params }: { para
             unitPrice: Number(it.unitPrice) || 0,
             subtotal: (Number(it.quantity) || 1) * (Number(it.unitPrice) || 0),
           })),
+        })
+      }
+    }
+
+    // If designerIds provided, replace order designers
+    if (designerIds !== undefined) {
+      await prisma.orderDesigner.deleteMany({ where: { orderId: id } })
+      if (designerIds.length > 0) {
+        await prisma.orderDesigner.createMany({
+          data: designerIds.map((uid: string) => ({ orderId: id, userId: uid })),
         })
       }
     }

@@ -11,7 +11,12 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
 
     const orders = await prisma.order.findMany({
       where,
-      include: { client: true, service: true, items: { orderBy: { id: 'asc' } } },
+      include: {
+        client: true,
+        service: true,
+        items: { orderBy: { id: 'asc' } },
+        orderDesigners: { include: { user: { select: { id: true, name: true, avatar: true } } } },
+      },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
     })
     return NextResponse.json({ orders })
@@ -24,7 +29,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
 export const POST = withAuth(async (req: AuthenticatedRequest) => {
   try {
     const body = await req.json()
-    const { title, description, amount, clientId, serviceId, deadline, items } = body
+    const { title, description, amount, clientId, serviceId, deadline, items, designerIds } = body
 
     if (!title || amount === undefined) {
       return NextResponse.json({ error: '缺少必填字段' }, { status: 400 })
@@ -46,8 +51,11 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
             subtotal: (Number(it.quantity) || 1) * (Number(it.unitPrice) || 0),
           }))
         } : undefined,
+        orderDesigners: designerIds && designerIds.length > 0 ? {
+          create: designerIds.map((uid: string) => ({ userId: uid }))
+        } : undefined,
       },
-      include: { items: true },
+      include: { items: true, orderDesigners: { include: { user: { select: { id: true, name: true, avatar: true } } } } },
     })
 
     // Auto-create a draft contract linked to this order

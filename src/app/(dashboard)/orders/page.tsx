@@ -13,6 +13,7 @@ interface Order {
   sortOrder: number
   client?: { name: string; logo?: string }; service?: { name: string }
   items?: OrderItem[]
+  orderDesigners?: { user: { id: string; name: string; avatar: string | null } }[]
 }
 
 const statusConfig: Record<string, { label: string; color: string }> = {
@@ -31,6 +32,8 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [clients, setClients] = useState<{id:string,name:string}[]>([])
   const [services, setServices] = useState<{id:string,name:string}[]>([])
+  const [allDesigners, setAllDesigners] = useState<{id:string,name:string,avatar:string|null}[]>([])
+  const [formDesignerIds, setFormDesignerIds] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
@@ -46,7 +49,7 @@ export default function OrdersPage() {
   const [dragOrderId, setDragOrderId] = useState<string | null>(null)
   const [dragOverOrderId, setDragOverOrderId] = useState<string | null>(null)
 
-  useEffect(() => { if (user) { fetchOrders(); fetchClients(); fetchServices(); } }, [user])
+  useEffect(() => { if (user) { fetchOrders(); fetchClients(); fetchServices(); fetchDesigners(); } }, [user])
 
   const fetchOrders = async () => {
     try { const res = await fetch('/api/orders'); if (res.ok) { const data = await res.json(); setOrders(Array.isArray(data) ? data : data.orders || []) } } catch {} finally { setLoading(false) }
@@ -56,6 +59,9 @@ export default function OrdersPage() {
   }
   const fetchServices = async () => {
     try { const res = await fetch('/api/services'); if (res.ok) { const data = await res.json(); setServices(Array.isArray(data) ? data : data.services || []) } } catch {}
+  }
+  const fetchDesigners = async () => {
+    try { const res = await fetch('/api/designers'); if (res.ok) { const data = await res.json(); setAllDesigners(data.designers || []) } } catch {}
   }
 
   // Calculate total from items
@@ -120,6 +126,7 @@ export default function OrdersPage() {
       if (form.deadline) body.deadline = new Date(form.deadline).toISOString()
       if (form.clientId) body.clientId = form.clientId
       if (form.serviceId) body.serviceId = form.serviceId
+      if (formDesignerIds.length > 0) body.designerIds = formDesignerIds
       if (editingId) { body.status = form.status; body.progress = form.progress }
 
       const url = editingId ? `/api/orders/${editingId}` : '/api/orders'
@@ -127,7 +134,7 @@ export default function OrdersPage() {
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (res.ok) {
         setShowModal(false); setForm({ title: '', description: '', amount: 0, deadline: '', clientId: '', serviceId: '', status: 'pending', progress: 0, logo: '' })
-        setItems([emptyItem()]); setEditingId(null); fetchOrders()
+        setItems([emptyItem()]); setEditingId(null); setFormDesignerIds([]); fetchOrders()
       } else { const data = await res.json(); alert(data.error || '操作失败') }
     } catch { alert('网络错误') } finally { setSubmitting(false) }
   }
@@ -140,6 +147,7 @@ export default function OrdersPage() {
       clientId: (order as any).clientId || '', serviceId: (order as any).serviceId || '',
       status: order.status, progress: order.progress, logo: (order as any).logo || '',
     })
+    setFormDesignerIds((order.orderDesigners || []).map(d => d.user.id))
     setItems(order.items && order.items.length > 0 ? order.items : [emptyItem()])
     setShowModal(true)
   }
@@ -237,7 +245,7 @@ export default function OrdersPage() {
       <div className="flex-1 p-4 md:p-8 overflow-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
           <div><h1 className="text-xl md:text-2xl font-bold text-[rgba(0,0,0,0.85)]">订单管理</h1><p className="text-sm text-[rgba(0,0,0,0.45)] mt-1">管理你的设计订单</p></div>
-            <button onClick={() => { setEditingId(null); setForm({ title: '', description: '', amount: 0, deadline: '', clientId: '', serviceId: '', status: 'pending', progress: 0, logo: '' }); setItems([emptyItem()]); setShowModal(true) }} className="flex items-center gap-2 px-4 py-2.5 bg-[#00B578] text-white rounded-lg font-medium hover:bg-[#009A63] transition-colors text-sm"><Plus className="w-4 h-4" /> 新建订单</button>
+            <button onClick={() => { setEditingId(null); setForm({ title: '', description: '', amount: 0, deadline: '', clientId: '', serviceId: '', status: 'pending', progress: 0, logo: '' }); setItems([emptyItem()]); setFormDesignerIds([]); setShowModal(true) }} className="flex items-center gap-2 px-4 py-2.5 bg-[#00B578] text-white rounded-lg font-medium hover:bg-[#009A63] transition-colors text-sm"><Plus className="w-4 h-4" /> 新建订单</button>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-[#E8E8E8] mb-6">
@@ -303,17 +311,20 @@ export default function OrdersPage() {
                             {order.service && <span className="text-xs text-[rgba(0,0,0,0.45)]">{order.service.name}</span>}
                           </div>
                           <h3 className="font-semibold text-[rgba(0,0,0,0.85)]">{order.title}</h3>
-                          {order.description && <p className="text-sm text-[rgba(0,0,0,0.45)] mt-1 line-clamp-1">{order.description}</p>}
-                          <div className="flex items-center gap-4 mt-2 text-sm text-[rgba(0,0,0,0.45)]">
-                            {order.client && (
-                              <span className="flex items-center gap-1.5">
-                                {order.client.logo ? (
-                                  <img src={order.client.logo} alt="" className="w-4 h-4 rounded-full object-contain bg-[#FAFAFA]" />
-                                ) : (
-                                  <div className="w-4 h-4 bg-[#F5F5F5] rounded-full flex items-center justify-center text-[7px] font-bold text-[rgba(0,0,0,0.25)]">{order.client.name[0]}</div>
-                                )}
-                                {order.client.name}
-                              </span>
+                          <div className="flex items-center gap-2 mt-2">
+                            {/* Designers avatars */}
+                            {order.orderDesigners && order.orderDesigners.length > 0 && (
+                              <div className="flex items-center -space-x-2">
+                                {order.orderDesigners.map((d, i) => (
+                                  <div key={d.user.id} title={d.user.name} className="relative" style={{ zIndex: order.orderDesigners!.length - i }}>
+                                    {d.user.avatar ? (
+                                      <img src={d.user.avatar} alt={d.user.name} className="w-7 h-7 rounded-full border-2 border-white object-cover" />
+                                    ) : (
+                                      <div className="w-7 h-7 rounded-full border-2 border-white bg-gradient-to-br from-[#00B578] to-[#009A63] flex items-center justify-center text-white text-xs font-medium">{d.user.name[0]}</div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
                             )}
                           </div>
                         </div>
@@ -343,7 +354,7 @@ export default function OrdersPage() {
                             <button onClick={() => window.location.href = '/contracts?orderId=' + order.id} className="p-1.5 hover:bg-[#FFF7E6] rounded-lg text-[#FAAD14]" title="合同"><FileSignature className="w-4 h-4" /></button>
                             <button onClick={() => window.location.href = '/invoices?orderId=' + order.id} className="p-1.5 hover:bg-[#E8F8F0] rounded-lg text-[#00B578]" title="开票"><Receipt className="w-4 h-4" /></button>
                             <button onClick={() => handleDelete(order.id)} className="p-1.5 hover:bg-[#FFF2F0] rounded-lg text-[#FF4D4F]"><Trash2 className="w-4 h-4" /></button>
-                            {hasItems && (
+                            {(hasItems || order.description || order.client) && (
                               <button onClick={() => toggleExpand(order.id)} className="p-1.5 hover:bg-[#F5F5F5] rounded-lg text-[rgba(0,0,0,0.45)]">
                                 {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                               </button>
@@ -354,6 +365,33 @@ export default function OrdersPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Expanded details */}
+                {expanded && (
+                  <div className="border-t border-[#F0F0F0] px-5 pb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3 text-sm">
+                      {order.description && (
+                        <div>
+                          <p className="text-[rgba(0,0,0,0.45)] mb-1">订单描述</p>
+                          <p className="text-[rgba(0,0,0,0.85)]">{order.description}</p>
+                        </div>
+                      )}
+                      {order.client && (
+                        <div>
+                          <p className="text-[rgba(0,0,0,0.45)] mb-1">关联客户</p>
+                          <div className="flex items-center gap-2">
+                            {order.client.logo ? (
+                              <img src={order.client.logo} alt="" className="w-5 h-5 rounded-full object-contain bg-[#FAFAFA]" />
+                            ) : (
+                              <div className="w-5 h-5 bg-[#F5F5F5] rounded-full flex items-center justify-center text-[8px] font-bold text-[rgba(0,0,0,0.25)]">{order.client.name[0]}</div>
+                            )}
+                            <span className="text-[rgba(0,0,0,0.85)]">{order.client.name}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Items breakdown */}
                 {hasItems && expanded && (
@@ -459,6 +497,41 @@ export default function OrdersPage() {
                 <div><label className="block text-sm font-medium mb-1">关联客户</label><select value={form.clientId} onChange={e => setForm({...form, clientId: e.target.value})} className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm"><option value="">选择客户（可选）</option>{clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
               </div>
               <div><label className="block text-sm font-medium mb-1">关联服务</label><select value={form.serviceId} onChange={e => setForm({...form, serviceId: e.target.value})} className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm"><option value="">选择服务（可选）</option>{services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+
+              {/* Designers multi-select */}
+              <div>
+                <label className="block text-sm font-medium mb-1.5">操刀设计师</label>
+                <div className="space-y-2">
+                  {/* Selected designers as tags */}
+                  {formDesignerIds.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {formDesignerIds.map(uid => {
+                        const d = allDesigners.find(x => x.id === uid)
+                        if (!d) return null
+                        return (
+                          <span key={uid} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#E8F8F0] text-[#00B578] rounded-full text-xs font-medium">
+                            {d.avatar ? (
+                              <img src={d.avatar} alt="" className="w-4 h-4 rounded-full object-cover" />
+                            ) : (
+                              <div className="w-4 h-4 bg-gradient-to-br from-[#00B578] to-[#009A63] rounded-full flex items-center justify-center text-white text-[8px] font-bold">{d.name[0]}</div>
+                            )}
+                            {d.name}
+                            <button onClick={() => setFormDesignerIds(prev => prev.filter(id => id !== uid))} className="text-[#00B578] hover:text-[#FF4D4F]"><X className="w-3 h-3" /></button>
+                          </span>
+                        )
+                      })}
+                    </div>
+                  )}
+                  {/* Add designer dropdown */}
+                  {allDesigners.length > formDesignerIds.length && (
+                    <select value="" onChange={e => { if (e.target.value && !formDesignerIds.includes(e.target.value)) setFormDesignerIds(prev => [...prev, e.target.value]) }}
+                      className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm text-[rgba(0,0,0,0.45)]">
+                      <option value="">+ 添加设计师</option>
+                      {allDesigners.filter(d => !formDesignerIds.includes(d.id)).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    </select>
+                  )}
+                </div>
+              </div>
 
               {editingId && (
                 <div className="grid grid-cols-2 gap-4">
