@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import { useAuth } from '@/lib/useAuth'
 import { Search, Plus, FileText, Edit, X, Upload, Download, Eye, Trash2 } from 'lucide-react'
+import PDFPreviewModal from '@/components/PDFPreviewModal'
 import PDFThumbnail from '@/components/PDFThumbnail'
 import PDFIcon from '@/components/PDFIcon'
 
@@ -204,17 +205,7 @@ export default function ContractsPage() {
 
       {/* PDF Preview Modal */}
       {previewUrl && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4" onClick={() => setPreviewUrl(null)}>
-          <div className="bg-white rounded-2xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0F0F0]">
-              <h3 className="font-semibold text-[rgba(0,0,0,0.85)]">合同预览</h3>
-              <button onClick={() => setPreviewUrl(null)} className="p-1 hover:bg-[#F5F5F5] rounded-lg"><X className="w-5 h-5" /></button>
-            </div>
-            <div className="flex-1 bg-[#525659]">
-              <iframe src={previewUrl} className="w-full h-full border-0" title="PDF Preview" />
-            </div>
-          </div>
-        </div>
+        <PDFPreviewModal url={previewUrl} title="合同预览" onClose={() => setPreviewUrl(null)} />
       )}
     </div>
   )
