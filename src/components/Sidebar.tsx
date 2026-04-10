@@ -19,14 +19,12 @@ const Kanban = ({ className }: { className?: string }) => (
 )
 
 const ToolBox = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="4" y="11" width="16" height="10" rx="1.5" stroke="currentColor" />
-    <path d="M10 11V8a2 2 0 0 1 4 0v3" stroke="currentColor" />
-    {/* 彩带 */}
-    <path d="M12 8c-1-2-3-3-4-2.5" stroke="#FF4D4F" />
-    <path d="M12 8c1-2.5 3-3 4.5-1.5" stroke="#1890FF" />
-    <path d="M12 8c-.5-2.5 0-4 2-5" stroke="#FAAD14" />
-    <path d="M12 8c-2-1.5-2.5-3.5-1-5" stroke="#00B578" />
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="10" width="18" height="11" rx="1" />
+    <path d="M3 14h18" />
+    <path d="M12 10v11" />
+    <path d="M8 10c0-2 1.5-4 4-4s4 2 4 4" />
+    <path d="M16 6c1-.5 2.5 0 3 1" />
   </svg>
 )
 
