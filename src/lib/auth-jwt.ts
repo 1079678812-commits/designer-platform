@@ -17,8 +17,8 @@ export interface TokenPayload {
   role: string
 }
 
-export function signToken(payload: TokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: `${TOKEN_MAX_AGE}s` })
+export function signToken(payload: TokenPayload, maxAge: number = TOKEN_MAX_AGE): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: `${maxAge}s` })
 }
 
 export function verifyToken(token: string): TokenPayload | null {
@@ -29,12 +29,12 @@ export function verifyToken(token: string): TokenPayload | null {
   }
 }
 
-export function setTokenCookie(token: string): string {
+export function setTokenCookie(token: string, maxAge: number = TOKEN_MAX_AGE): string {
   return serialize(TOKEN_NAME, token, {
     httpOnly: true,
     secure: false,
     sameSite: 'lax',
-    maxAge: TOKEN_MAX_AGE,
+    maxAge,
     path: '/',
   })
 }

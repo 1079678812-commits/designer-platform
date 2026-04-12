@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { email, password } = body
+    const { email, password, rememberMe } = body
 
     if (!email || !password) {
       return NextResponse.json({ error: '请输入邮箱和密码' }, { status: 400 })
@@ -35,19 +35,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '账户已被禁用' }, { status: 403 })
     }
 
+    const maxAge = rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60 // 30 days or 7 days
     const token = signToken({
       userId: user.id,
       email: user.email,
       name: user.name,
       role: user.role,
-    })
+    }, maxAge)
 
     const response = NextResponse.json({
       success: true,
       user: { id: user.id, name: user.name, email: user.email, role: user.role, slug: user.slug },
     })
 
-    response.headers.set('Set-Cookie', setTokenCookie(token))
+    response.headers.set('Set-Cookie', setTokenCookie(token, maxAge))
 
     await auditLog({ userId: user.id, action: 'login', resource: 'user', ip })
 

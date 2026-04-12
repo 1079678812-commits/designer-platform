@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Briefcase, Eye, EyeOff } from 'lucide-react'
@@ -11,8 +11,21 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Load saved credentials on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('remembered_login')
+      if (saved) {
+        const { email: savedEmail, password: savedPassword } = JSON.parse(saved)
+        if (savedEmail) { setEmail(savedEmail); setRememberMe(true) }
+        if (savedPassword) setPassword(savedPassword)
+      }
+    } catch {}
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -22,10 +35,18 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, rememberMe }),
       })
       const data = await res.json()
       if (res.ok) {
+        // Save or clear remembered credentials
+        try {
+          if (rememberMe) {
+            localStorage.setItem('remembered_login', JSON.stringify({ email, password }))
+          } else {
+            localStorage.removeItem('remembered_login')
+          }
+        } catch {}
         router.push('/dashboard')
         router.refresh()
       } else {
@@ -98,6 +119,12 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="rememberMe" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded border-[#D9D9D9] text-[#00B578] focus:ring-[#00B578]/30 cursor-pointer accent-[#00B578]" />
+              <label htmlFor="rememberMe" className="text-sm text-[rgba(0,0,0,0.45)] cursor-pointer select-none">30天内记住密码</label>
             </div>
 
             <button type="submit" disabled={loading}
