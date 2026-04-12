@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Save admin's current token so they can restore it later
-  const adminToken = request.headers.get('cookie')?.match(/token=([^;]+)/)?.[1] || ''
+  const adminToken = request.headers.get('cookie')?.match(/designer_token=([^;]+)/)?.[1] || ''
 
   // Sign a token with impersonatingId
   const token = signToken({

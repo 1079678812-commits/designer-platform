@@ -75,9 +75,17 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
       localStorage.removeItem('impersonating_admin')
       
       if (adminToken) {
-        // Restore admin token by setting cookie and redirecting to admin
-        document.cookie = `token=${adminToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`
-        window.location.href = '/admin'
+        // Call API to properly restore admin session cookie
+        const res = await fetch('/api/admin/exit-impersonate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ adminToken }),
+        })
+        if (res.ok) {
+          window.location.href = '/admin'
+        } else {
+          window.location.href = '/login'
+        }
       } else {
         window.location.href = '/login'
       }
