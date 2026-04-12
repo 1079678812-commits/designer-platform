@@ -67,10 +67,23 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
     } catch {}
   }, [])
 
-  const handleExitImpersonate = () => {
-    try { localStorage.removeItem('impersonating_admin') } catch {}
-    // Re-login as admin - redirect to admin login
-    window.location.href = '/api/auth/logout?redirect=/login'
+  const handleExitImpersonate = async () => {
+    try {
+      const adminData = localStorage.getItem('impersonating_admin')
+      if (!adminData) { window.location.href = '/login'; return }
+      const { token: adminToken } = JSON.parse(adminData)
+      localStorage.removeItem('impersonating_admin')
+      
+      if (adminToken) {
+        // Restore admin token by setting cookie and redirecting to admin
+        document.cookie = `token=${adminToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`
+        window.location.href = '/admin'
+      } else {
+        window.location.href = '/login'
+      }
+    } catch {
+      window.location.href = '/login'
+    }
   }
 
   const handleLogout = () => {

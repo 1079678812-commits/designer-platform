@@ -117,6 +117,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '用户不存在' }, { status: 404 })
   }
 
+  // Save admin's current token so they can restore it later
+  const adminToken = request.headers.get('cookie')?.match(/token=([^;]+)/)?.[1] || ''
+
   // Sign a token with impersonatingId
   const token = signToken({
     userId: target.id,
@@ -129,6 +132,7 @@ export async function POST(request: NextRequest) {
     success: true,
     impersonating: { id: target.id, name: target.name, email: target.email, role: target.role },
     adminUser: { id: user.userId, name: user.name },
+    adminToken,
     token,
   })
 

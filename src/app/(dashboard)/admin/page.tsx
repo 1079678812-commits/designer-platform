@@ -310,6 +310,7 @@ function TenantManagerTab() {
           localStorage.setItem('impersonating_admin', JSON.stringify({
             id: data.adminUser.id,
             name: data.adminUser.name,
+            token: data.adminToken,
           }))
         } catch {}
         window.location.href = '/dashboard'
