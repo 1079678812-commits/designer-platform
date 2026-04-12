@@ -230,3 +230,35 @@ model DeployLog {
   buildTime   Int?                       // 构建耗时（秒）
   createdAt   DateTime @default(now())
 }
+
+model PlatformConfig {
+  id         String   @id @default(cuid())
+  siteName   String   @default("设计师平台")
+  logoUrl    String?
+  themeColor String   @default("#00B578")
+  updatedAt  DateTime @updatedAt
+}
+
+model HelpArticle {
+  id        String   @id @default(cuid())
+  title     String
+  category  String   @default("其他") // 新手指南|订单管理|账户设置|常见问题|其他
+  content   String   // Markdown 内容
+  sortOrder Int      @default(0)
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Announcement {
+  id        String    @id @default(cuid())
+  title     String
+  content   String
+  type      String    @default("notice") // notice|maintenance|update
+  priority  Int       @default(0) // 数字越大越优先
+  active    Boolean   @default(true)
+  startAt   DateTime?
+  endAt     DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}

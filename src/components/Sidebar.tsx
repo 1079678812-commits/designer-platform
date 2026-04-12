@@ -46,6 +46,18 @@ const menuItems = [
 function NavContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname()
   const { user, logout } = useAuth(false)
+  const [siteName, setSiteName] = useState('设计师平台')
+  const [logoUrl, setLogoUrl] = useState('')
+
+  useEffect(() => {
+    fetch('/api/config')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.siteName) setSiteName(d.siteName)
+        if (d?.logoUrl) setLogoUrl(d.logoUrl)
+      })
+      .catch(() => {})
+  }, [])
 
   const handleLogout = () => {
     logout()
@@ -60,10 +72,14 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
       <div className="p-6 border-b border-[#F0F0F0]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-[#00B578] to-[#009A63] rounded-lg flex items-center justify-center">
-              <Briefcase className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-bold text-lg text-[rgba(0,0,0,0.85)]">设计师平台</span>
+            {logoUrl ? (
+              <img src={logoUrl} alt={siteName} className="w-8 h-8 rounded-lg object-contain" />
+            ) : (
+              <div className="w-8 h-8 bg-gradient-to-br from-[#00B578] to-[#009A63] rounded-lg flex items-center justify-center">
+                <Briefcase className="w-5 h-5 text-white" />
+              </div>
+            )}
+            <span className="font-bold text-lg text-[rgba(0,0,0,0.85)]">{siteName}</span>
           </div>
           {onNavigate && (
             <button onClick={onNavigate} className="p-1 hover:bg-[#FAFAFA] rounded-lg">
@@ -111,10 +127,10 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       <div className="p-4 border-t border-[#F0F0F0] space-y-2">
-        <button className="flex items-center gap-3 px-4 py-3 text-[rgba(0,0,0,0.65)] hover:bg-[#FAFAFA] rounded-lg w-full">
+        <Link href="/help" className="flex items-center gap-3 px-4 py-3 text-[rgba(0,0,0,0.65)] hover:bg-[#FAFAFA] rounded-lg w-full">
           <HelpCircle className="w-5 h-5 flex-shrink-0" />
           <span>帮助中心</span>
-        </button>
+        </Link>
         <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-[#FF4D4F] hover:bg-[#FFF2F0] rounded-lg w-full">
           <LogOut className="w-5 h-5 flex-shrink-0" />
           <span>退出登录</span>

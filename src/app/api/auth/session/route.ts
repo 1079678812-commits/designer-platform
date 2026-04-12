@@ -13,12 +13,12 @@ export async function GET(request: NextRequest) {
   try {
     dbUser = await prisma.user.findUnique({
       where: { id: tokenUser.userId },
-      select: { id: true, name: true, email: true, role: true, title: true, avatar: true },
+      select: { id: true, name: true, email: true, role: true, title: true, avatar: true, status: true },
     })
   } catch {}
 
   const user = dbUser
-    ? { userId: dbUser.id, name: dbUser.name, email: dbUser.email, role: dbUser.role, title: dbUser.title, avatar: dbUser.avatar }
+    ? { userId: dbUser.id, name: dbUser.name, email: dbUser.email, role: dbUser.role, title: dbUser.title, avatar: dbUser.avatar, status: dbUser.status }
     : tokenUser
 
   return NextResponse.json({ user })

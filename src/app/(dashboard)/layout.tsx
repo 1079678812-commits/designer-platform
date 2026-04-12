@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import AuthGuard from '@/components/AuthGuard'
+import AnnouncementBanner from '@/components/AnnouncementBanner'
 
 export const metadata: Metadata = {
   title: {
@@ -14,5 +15,10 @@ export const metadata: Metadata = {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  return <AuthGuard>{children}</AuthGuard>
+  return (
+    <AuthGuard>
+      <AnnouncementBanner />
+      {children}
+    </AuthGuard>
+  )
 }
