@@ -48,6 +48,7 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
   const { user, logout } = useAuth(false)
   const [siteName, setSiteName] = useState('设计师平台')
   const [logoUrl, setLogoUrl] = useState('')
+  const [isImpersonating, setIsImpersonating] = useState(false)
 
   useEffect(() => {
     fetch('/api/config')
@@ -58,6 +59,19 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
       })
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    try {
+      const admin = localStorage.getItem('impersonating_admin')
+      setIsImpersonating(!!admin)
+    } catch {}
+  }, [])
+
+  const handleExitImpersonate = () => {
+    try { localStorage.removeItem('impersonating_admin') } catch {}
+    // Re-login as admin - redirect to admin login
+    window.location.href = '/api/auth/logout?redirect=/login'
+  }
 
   const handleLogout = () => {
     logout()
@@ -88,6 +102,17 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
           )}
         </div>
       </div>
+
+      {/* Impersonation banner */}
+      {isImpersonating && (
+        <div className="mx-3 mt-3 px-3 py-2.5 bg-[#FFF7E6] border border-[#FFE58F] rounded-lg">
+          <p className="text-xs text-[#D48806] font-medium mb-1.5">🔍 正在查看租户视图</p>
+          <button onClick={handleExitImpersonate}
+            className="w-full px-3 py-1.5 bg-[#FAAD14] text-white rounded-md text-xs font-medium hover:bg-[#D48806] transition-colors">
+            回到管理员账户
+          </button>
+        </div>
+      )}
 
       <div className="p-6 border-b border-[#F0F0F0]">
         <div className="flex items-center gap-3">

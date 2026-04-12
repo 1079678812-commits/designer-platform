@@ -40,7 +40,7 @@ interface AdminUser {
   _count: { services: number; orders: number }
 }
 
-type Tab = 'overview' | 'users' | 'tenants' | 'reviews' | 'branding' | 'help' | 'announcements' | 'audit' | 'deploy'
+type Tab = 'overview' | 'tenants' | 'reviews' | 'branding' | 'help' | 'announcements' | 'audit' | 'deploy'
 
 export default function AdminPage() {
   const { user, loading: authLoading } = useAuth()
@@ -121,7 +121,6 @@ export default function AdminPage() {
 
   const tabs: { key: Tab; label: string; icon: any }[] = [
     { key: 'overview', label: '概览', icon: LayoutDashboard },
-    { key: 'users', label: '用户管理', icon: Users },
     { key: 'tenants', label: '租户管理', icon: Building2 },
     { key: 'reviews', label: '审核中心', icon: FileCheck },
     { key: 'branding', label: '品牌设置', icon: Palette },
@@ -202,68 +201,6 @@ export default function AdminPage() {
         )}
 
         {/* Users */}
-        {tab === 'users' && (
-          <div className="space-y-4">
-            <div className="bg-white p-4 rounded-xl border border-[#E8E8E8] flex gap-3">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[rgba(0,0,0,0.45)]" />
-                <input type="text" placeholder="搜索用户名或邮箱..." value={userSearch} onChange={e => { setUserSearch(e.target.value); setUserPage(1) }}
-                  className="w-full pl-10 pr-4 py-2.5 border border-[#D9D9D9] rounded-lg text-sm focus:outline-none focus:border-[#00B578]" />
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl border border-[#E8E8E8] overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-[#FAFAFA]">
-                  <tr>
-                    {['用户', '邮箱', '角色', '服务数', '订单数', '状态', '操作'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left font-medium text-[rgba(0,0,0,0.45)]">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#F0F0F0]">
-                  {users.map(u => (
-                    <tr key={u.id} className="hover:bg-[#FAFAFA]">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-[#00B578]/10 rounded-full flex items-center justify-center text-[#00B578] font-medium text-sm">{u.name[0]}</div>
-                          <div><p className="font-medium text-[rgba(0,0,0,0.85)]">{u.name}</p>{u.title && <p className="text-xs text-[rgba(0,0,0,0.45)]">{u.title}</p>}</div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-[rgba(0,0,0,0.45)]">{u.email}</td>
-                      <td className="px-4 py-3"><span className="px-2 py-0.5 bg-[#E8F8F0] text-[#00B578] rounded-full text-xs">{u.role}</span></td>
-                      <td className="px-4 py-3 text-[rgba(0,0,0,0.45)]">{u._count.services}</td>
-                      <td className="px-4 py-3 text-[rgba(0,0,0,0.45)]">{u._count.orders}</td>
-                      <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-xs ${u.status === 'active' ? 'bg-[#F6FFED] text-[#52C41A]' : 'bg-[#FFF2F0] text-[#FF4D4F]'}`}>{u.status === 'active' ? '正常' : '禁用'}</span></td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-1">
-                          {u.status === 'active' ? (
-                            <button onClick={() => handleReview('user', u.id, 'reject')} className="px-2 py-1 text-xs text-[#FF4D4F] hover:bg-[#FFF2F0] rounded">禁用</button>
-                          ) : (
-                            <button onClick={() => handleReview('user', u.id, 'approve')} className="px-2 py-1 text-xs text-[#00B578] hover:bg-[#E8F8F0] rounded">启用</button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {users.length === 0 && <div className="text-center py-12 text-[rgba(0,0,0,0.45)]">暂无用户</div>}
-            </div>
-
-            {/* Pagination */}
-            {userTotal > 20 && (
-              <div className="flex justify-center gap-2">
-                <button onClick={() => setUserPage(p => Math.max(1, p - 1))} disabled={userPage === 1}
-                  className="p-2 rounded-lg border border-[#D9D9D9] disabled:opacity-30"><ChevronLeft className="w-4 h-4" /></button>
-                <span className="px-3 py-2 text-sm text-[rgba(0,0,0,0.45)]">第 {userPage} 页</span>
-                <button onClick={() => setUserPage(p => p + 1)} disabled={userPage * 20 >= userTotal}
-                  className="p-2 rounded-lg border border-[#D9D9D9] disabled:opacity-30"><ChevronRight className="w-4 h-4" /></button>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Tenants */}
         {tab === 'tenants' && <TenantManagerTab />}
 
@@ -358,7 +295,7 @@ function TenantManagerTab() {
   }
 
   const handleImpersonate = async (userId: string) => {
-    if (!confirm('确认以该租户身份登录？你将看到该租户的视图。')) return
+    if (!confirm('确认登录该租户？你将看到该租户的视图，可随时回到管理员账户。')) return
     setImpersonating(true)
     try {
       const res = await fetch('/api/admin/tenants', {
@@ -414,7 +351,7 @@ function TenantManagerTab() {
               </button>
               <button onClick={() => handleImpersonate(selectedTenant.id)} disabled={impersonating}
                 className="px-4 py-2 bg-[#1890FF] text-white rounded-lg text-sm hover:bg-[#096DD9] flex items-center gap-1 disabled:opacity-50">
-                <UserCog className="w-4 h-4" />模拟登录
+                <UserCog className="w-4 h-4" />登录租户
               </button>
             </div>
           </div>
@@ -491,7 +428,7 @@ function TenantManagerTab() {
         <table className="w-full text-sm">
           <thead className="bg-[#FAFAFA]">
             <tr>
-              {['名称', '邮箱', '公司', '服务数', '订单数', '状态', '注册时间', '操作'].map(h => (
+              {['名称', '邮箱', '公司', '服务', '订单', '收入', '状态', '操作'].map(h => (
                 <th key={h} className="px-4 py-3 text-left font-medium text-[rgba(0,0,0,0.45)]">{h}</th>
               ))}
             </tr>
@@ -509,6 +446,7 @@ function TenantManagerTab() {
                 <td className="px-4 py-3 text-[rgba(0,0,0,0.45)]">{t.company || '-'}</td>
                 <td className="px-4 py-3 text-[rgba(0,0,0,0.45)]">{t._count?.services || 0}</td>
                 <td className="px-4 py-3 text-[rgba(0,0,0,0.45)]">{t._count?.orders || 0}</td>
+                <td className="px-4 py-3 text-[rgba(0,0,0,0.65)] font-medium">¥{(t.revenue || 0).toLocaleString()}</td>
                 <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-xs ${t.status === 'active' ? 'bg-[#F6FFED] text-[#52C41A]' : 'bg-[#FFF2F0] text-[#FF4D4F]'}`}>{t.status === 'active' ? '正常' : '已暂停'}</span></td>
                 <td className="px-4 py-3 text-[rgba(0,0,0,0.45)] whitespace-nowrap">{new Date(t.createdAt).toLocaleDateString('zh-CN')}</td>
                 <td className="px-4 py-3">
@@ -519,7 +457,7 @@ function TenantManagerTab() {
                       {t.status === 'active' ? '暂停' : '启用'}
                     </button>
                     <button onClick={() => handleImpersonate(t.id)} disabled={impersonating}
-                      className="px-2 py-1 text-xs text-[#722ED1] hover:bg-[#F9F0FF] rounded flex items-center gap-1 disabled:opacity-50"><ExternalLink className="w-3 h-3" />模拟</button>
+                      className="px-2 py-1 text-xs text-[#722ED1] hover:bg-[#F9F0FF] rounded flex items-center gap-1 disabled:opacity-50"><ExternalLink className="w-3 h-3" />登录租户</button>
                   </div>
                 </td>
               </tr>
@@ -545,6 +483,7 @@ function BrandingTab() {
   const [config, setConfig] = useState({ siteName: '', logoUrl: '', themeColor: '#00B578' })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     fetch('/api/admin/branding').then(r => r.ok ? r.json() : null).then(d => {
@@ -567,6 +506,31 @@ function BrandingTab() {
     } catch {} finally { setSaving(false) }
   }
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) return alert('图片大小不能超过5MB')
+    if (!file.type.startsWith('image/')) return alert('请上传图片文件')
+
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('category', 'logo')
+      const res = await fetch('/api/upload', { method: 'POST', body: formData })
+      if (res.ok) {
+        const data = await res.json()
+        setConfig(p => ({ ...p, logoUrl: data.url || data.fileUrl || '' }))
+      } else {
+        alert('上传失败')
+      }
+    } catch { alert('上传失败') } finally { setUploading(false) }
+  }
+
+  const handleRemoveLogo = () => {
+    setConfig(p => ({ ...p, logoUrl: '' }))
+  }
+
   return (
     <div className="max-w-2xl space-y-6">
       <div className="bg-white p-6 rounded-xl border border-[#E8E8E8] space-y-5">
@@ -579,15 +543,41 @@ function BrandingTab() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-[rgba(0,0,0,0.65)] mb-1.5">平台 Logo URL</label>
-          <input type="text" value={config.logoUrl} onChange={e => setConfig(p => ({ ...p, logoUrl: e.target.value }))}
-            className="w-full px-4 py-2.5 border border-[#D9D9D9] rounded-lg text-sm focus:outline-none focus:border-[#00B578]" placeholder="https://example.com/logo.png" />
-          {config.logoUrl && (
-            <div className="mt-2 flex items-center gap-2">
-              <img src={config.logoUrl} alt="Logo预览" className="w-8 h-8 rounded object-contain border border-[#E8E8E8]" />
-              <span className="text-xs text-[rgba(0,0,0,0.45)]">Logo 预览</span>
+          <label className="block text-sm font-medium text-[rgba(0,0,0,0.65)] mb-1.5">平台 Logo</label>
+          <div className="flex items-start gap-4">
+            <div className="relative group">
+              {config.logoUrl ? (
+                <div className="relative w-[160px] h-[160px] rounded-xl border-2 border-[#E8E8E8] overflow-hidden bg-[#FAFAFA]">
+                  <img src={config.logoUrl} alt="Logo" className="w-full h-full object-contain p-3" />
+                  <button onClick={handleRemoveLogo}
+                    className="absolute top-1 right-1 w-6 h-6 bg-[rgba(0,0,0,0.5)] text-white rounded-full flex items-center justify-center hover:bg-[rgba(0,0,0,0.7)] text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <label className="w-[160px] h-[160px] rounded-xl border-2 border-dashed border-[#D9D9D9] bg-[#FAFAFA] flex flex-col items-center justify-center cursor-pointer hover:border-[#00B578] hover:bg-[#E8F8F0]/30 transition-colors">
+                  <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                  {uploading ? (
+                    <span className="w-6 h-6 border-2 border-[#00B578] border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <Plus className="w-8 h-8 text-[#D9D9D9] mb-1" />
+                      <span className="text-xs text-[rgba(0,0,0,0.25)]">上传 Logo</span>
+                    </>
+                  )}
+                </label>
+              )}
             </div>
-          )}
+            <div className="flex-1 pt-2">
+              <p className="text-sm text-[rgba(0,0,0,0.45)] mb-3">建议上传 400×400 像素的 PNG 或 SVG 图片，作为平台 Logo 显示在导航栏和登录页。</p>
+              {config.logoUrl && (
+                <label className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-[#D9D9D9] rounded-lg text-sm text-[rgba(0,0,0,0.65)] hover:bg-[#FAFAFA] cursor-pointer">
+                  <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                  替换图片
+                </label>
+              )}
+            </div>
+          </div>
         </div>
 
         <div>
@@ -600,11 +590,13 @@ function BrandingTab() {
           </div>
         </div>
 
-        <button onClick={handleSave} disabled={saving}
-          className="px-6 py-2.5 bg-[#00B578] text-white rounded-lg text-sm hover:bg-[#009A63] disabled:opacity-50 flex items-center gap-2">
-          {saving ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />保存中...</> : <><Save className="w-4 h-4" />保存设置</>}
-        </button>
-        {saved && <span className="ml-3 text-sm text-[#52C41A]">✓ 已保存</span>}
+        <div className="flex items-center gap-3 pt-2">
+          <button onClick={handleSave} disabled={saving}
+            className="px-6 py-2.5 bg-[#00B578] text-white rounded-lg text-sm hover:bg-[#009A63] disabled:opacity-50 flex items-center gap-2">
+            {saving ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />保存中...</> : <><Save className="w-4 h-4" />保存设置</>}
+          </button>
+          {saved && <span className="text-sm text-[#52C41A]">✓ 已保存，全站即时生效</span>}
+        </div>
       </div>
 
       {/* Preview */}

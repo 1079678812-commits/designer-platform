@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
         slug: true,
         _count: { select: { services: true, orders: true, clients: true } },
         clients: { select: { company: true }, take: 1 },
+        orders: { select: { amount: true, createdAt: true } },
       },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * pageSize,
@@ -43,11 +44,29 @@ export async function GET(request: NextRequest) {
     prisma.user.count({ where }),
   ])
 
-  return NextResponse.json({
-    tenants: tenants.map(t => ({
+  // Enrich with revenue and lastActivity, then sort
+  const enriched = tenants.map(t => {
+    const revenue = t.orders?.reduce((sum: number, o: any) => sum + (o.amount || 0), 0) || 0
+    const lastActivity = t.orders?.length > 0
+      ? t.orders.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0].createdAt
+      : t.createdAt
+    return {
       ...t,
       company: t.clients?.[0]?.company || null,
-    })),
+      revenue,
+      orderCount: t._count.orders,
+      lastActivity,
+    }
+  })
+
+  // Sort by revenue desc, then by activity desc
+  enriched.sort((a, b) => {
+    if (b.revenue !== a.revenue) return b.revenue - a.revenue
+    return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime()
+  })
+
+  return NextResponse.json({
+    tenants: enriched,
     total,
   })
 }
