@@ -1,17 +1,26 @@
+'use client'
+
 import Link from 'next/link'
 import { Briefcase, LayoutDashboard, FileText, BarChart3, Shield } from 'lucide-react'
+import { useBranding } from '@/lib/useBranding'
 
 export default function Home() {
+  const { siteName, logoUrl, themeColor } = useBranding()
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="border-b border-[#F0F0F0]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-[#00B578] to-[#009A63] rounded-lg flex items-center justify-center">
-              <Briefcase className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-bold text-lg text-[rgba(0,0,0,0.85)]">设计师平台</span>
+            {logoUrl ? (
+              <img src={logoUrl} alt={siteName} className="w-8 h-8 rounded-lg object-contain" />
+            ) : (
+              <div className="w-8 h-8 bg-gradient-to-br from-[#00B578] to-[#009A63] rounded-lg flex items-center justify-center">
+                <Briefcase className="w-5 h-5 text-white" />
+              </div>
+            )}
+            <span className="font-bold text-lg text-[rgba(0,0,0,0.85)]">{siteName}</span>
           </div>
           <div className="flex items-center gap-3">
             <Link href="/login" className="px-4 py-2 text-sm font-medium text-[rgba(0,0,0,0.65)] hover:text-[#00B578] transition-colors">
@@ -90,7 +99,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-[#F0F0F0] py-8">
         <div className="max-w-7xl mx-auto px-4 text-center text-sm text-[rgba(0,0,0,0.45)]">
-          © 2026 设计师接单平台 · 保留所有权利
+          © 2026 {siteName} · 保留所有权利
         </div>
       </footer>
     </div>

@@ -11,7 +11,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const designer = await prisma.user.findUnique({ where: { slug }, select: { name: true, title: true, bio: true } })
   if (!designer) return { title: '设计师未找到' }
 
-  const title = `${designer.name} - ${designer.title || '设计师'} | 设计师接单平台`
+  // 读取品牌配置
+  let platformName = '在家平台'
+  try {
+    const config = await prisma.platformConfig.findFirst()
+    if (config?.siteName) platformName = config.siteName
+  } catch {}
+
+  const title = `${designer.name} - ${designer.title || '设计师'} | ${platformName}`
   const description = designer.bio || `${designer.name}的专业设计师主页，查看服务项目和作品集`
 
   return {
@@ -21,7 +28,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       title,
       description,
       type: 'profile',
-      siteName: '设计师接单平台',
+      siteName: '在家平台',
     },
     twitter: {
       card: 'summary_large_image',
@@ -43,16 +50,29 @@ export default async function DesignerPage({ params }: { params: Promise<{ slug:
 
   if (!designer || designer.status !== 'active') notFound()
 
+  // 读取品牌配置
+  let siteName = '在家平台'
+  let logoUrl = ''
+  try {
+    const config = await prisma.platformConfig.findFirst()
+    if (config?.siteName) siteName = config.siteName
+    if (config?.logoUrl) logoUrl = config.logoUrl
+  } catch {}
+
   return (
     <div className="min-h-screen bg-[#F5F5F5]">
       {/* Header */}
       <header className="bg-white border-b border-[#F0F0F0]">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-[#00B578] to-[#009A63] rounded-lg flex items-center justify-center">
-              <Briefcase className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-bold text-lg text-[rgba(0,0,0,0.85)]">设计师平台</span>
+            {logoUrl ? (
+              <img src={logoUrl} alt={siteName} className="w-8 h-8 rounded-lg object-contain" />
+            ) : (
+              <div className="w-8 h-8 bg-gradient-to-br from-[#00B578] to-[#009A63] rounded-lg flex items-center justify-center">
+                <Briefcase className="w-5 h-5 text-white" />
+              </div>
+            )}
+            <span className="font-bold text-lg text-[rgba(0,0,0,0.85)]">{siteName}</span>
           </div>
           <Link href="/login" className="text-sm text-[#00B578] hover:text-[#009A63]">登录/注册</Link>
         </div>

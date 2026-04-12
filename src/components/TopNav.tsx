@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Briefcase, LayoutDashboard, Users, FileText, Settings, Bell, BarChart3, Receipt, FileSignature, Menu, Home, LogOut } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { useBranding } from '@/lib/useBranding'
 
 const navItems = [
   { icon: Home, label: '首页', href: '/' },
@@ -24,6 +25,7 @@ export default function TopNav() {
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userName, setUserName] = useState('')
+  const { siteName, logoUrl } = useBranding()
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -45,10 +47,14 @@ export default function TopNav() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
-              <div className="w-8 h-8 bg-gradient-to-br from-[#00B578] to-[#009A63] rounded-lg flex items-center justify-center mr-3">
-                <Briefcase className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-bold text-lg text-[rgba(0,0,0,0.85)]">设计师平台</span>
+              {logoUrl ? (
+                <img src={logoUrl} alt={siteName} className="w-8 h-8 rounded-lg object-contain mr-3" />
+              ) : (
+                <div className="w-8 h-8 bg-gradient-to-br from-[#00B578] to-[#009A63] rounded-lg flex items-center justify-center mr-3">
+                  <Briefcase className="w-5 h-5 text-white" />
+                </div>
+              )}
+              <span className="font-bold text-lg text-[rgba(0,0,0,0.85)]">{siteName}</span>
               {userName && <span className="ml-4 px-3 py-1 bg-[#E8F8F0] text-[#00B578] text-sm font-medium rounded-full">{userName}</span>}
             </div>
             <div className="flex items-center space-x-1 overflow-x-auto">
@@ -79,7 +85,7 @@ export default function TopNav() {
               <div className="w-7 h-7 bg-gradient-to-br from-[#00B578] to-[#009A63] rounded-lg flex items-center justify-center mr-2">
                 <Briefcase className="w-4 h-4 text-white" />
               </div>
-              <span className="font-bold text-base text-[rgba(0,0,0,0.85)]">设计师平台</span>
+              <span className="font-bold text-base text-[rgba(0,0,0,0.85)]">{siteName}</span>
             </div>
             <button onClick={handleLogout} className="p-2 rounded-lg hover:bg-[#F5F5F5]"><LogOut className="w-4 h-4 text-[rgba(0,0,0,0.45)]" /></button>
           </div>
