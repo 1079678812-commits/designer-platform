@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/useAuth'
 import {
   LayoutDashboard, Users, FileCheck, DollarSign, AlertCircle,
   CheckCircle, XCircle, Search, Eye, ChevronLeft, ChevronRight,
-  BarChart3, Shield, Activity
+  BarChart3, Shield, Activity, GitBranch, RotateCcw, Rocket
 } from 'lucide-react'
 
 interface AdminStats {
@@ -38,7 +38,7 @@ interface AdminUser {
   _count: { services: number; orders: number }
 }
 
-type Tab = 'overview' | 'users' | 'reviews' | 'audit'
+type Tab = 'overview' | 'users' | 'reviews' | 'audit' | 'deploy'
 
 export default function AdminPage() {
   const { user, loading: authLoading } = useAuth()
@@ -122,6 +122,7 @@ export default function AdminPage() {
     { key: 'users', label: '用户管理', icon: Users },
     { key: 'reviews', label: '审核中心', icon: FileCheck },
     { key: 'audit', label: '操作日志', icon: Activity },
+    { key: 'deploy', label: '版本管理', icon: GitBranch },
   ]
 
   return (
@@ -292,6 +293,11 @@ export default function AdminPage() {
         {tab === 'audit' && (
           <AuditLogTab />
         )}
+
+        {/* Deploy / Version Management */}
+        {tab === 'deploy' && (
+          <DeployTab />
+        )}
       </div>
     </div>
   )
@@ -370,6 +376,178 @@ function AuditLogTab() {
           <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1.5 border border-[#D9D9D9] rounded-lg text-sm disabled:opacity-30">上一页</button>
           <span className="px-3 py-1.5 text-sm text-[rgba(0,0,0,0.45)]">第 {page} 页</span>
           <button onClick={() => setPage(p => p + 1)} disabled={page * 30 >= total} className="px-3 py-1.5 border border-[#D9D9D9] rounded-lg text-sm disabled:opacity-30">下一页</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Deploy / Version Management Tab
+function DeployTab() {
+  const [logs, setLogs] = useState<any[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const [currentHash, setCurrentHash] = useState('')
+  const [currentMsg, setCurrentMsg] = useState('')
+  const [rollingBack, setRollingBack] = useState<string | null>(null)
+  const [confirmHash, setConfirmHash] = useState<string | null>(null)
+  const [result, setResult] = useState<{ success: boolean; msg: string } | null>(null)
+
+  useEffect(() => { fetchDeploys() }, [page])
+
+  const fetchDeploys = async () => {
+    try {
+      const res = await fetch(`/api/admin/deploy?page=${page}&pageSize=20`)
+      if (res.ok) {
+        const data = await res.json()
+        setLogs(data.logs)
+        setTotal(data.total)
+        setCurrentHash(data.currentHash || '')
+        setCurrentMsg(data.currentMsg || '')
+      }
+    } catch {}
+  }
+
+  const handleRollback = async (commitHash: string) => {
+    setRollingBack(commitHash)
+    setResult(null)
+    try {
+      const res = await fetch('/api/admin/deploy', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ commitHash }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        setResult({ success: true, msg: `已回滚到 ${commitHash}` })
+        fetchDeploys()
+      } else {
+        setResult({ success: false, msg: data.error || data.detail || '回滚失败' })
+      }
+    } catch (err: any) {
+      setResult({ success: false, msg: err.message || '回滚失败' })
+    } finally {
+      setRollingBack(null)
+      setConfirmHash(null)
+    }
+  }
+
+  const statusLabels: Record<string, { label: string; color: string }> = {
+    success: { label: '部署成功', color: 'bg-[#E8F8F0] text-[#00B578]' },
+    failed: { label: '部署失败', color: 'bg-[#FFF2F0] text-[#FF4D4F]' },
+    rolled_back: { label: '已回滚', color: 'bg-[#FFFBE6] text-[#FAAD14]' },
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* 当前版本信息 */}
+      <div className="bg-white p-5 rounded-xl border border-[#E8E8E8]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#E8F8F0] rounded-xl flex items-center justify-center">
+              <GitBranch className="w-5 h-5 text-[#00B578]" />
+            </div>
+            <div>
+              <p className="font-semibold text-[rgba(0,0,0,0.85)]">当前线上版本</p>
+              <p className="text-sm text-[rgba(0,0,0,0.45)] mt-0.5">
+                <code className="px-1.5 py-0.5 bg-[#F5F5F5] rounded text-xs font-mono">{currentHash || '未知'}</code>
+                {currentMsg && <span className="ml-2">{currentMsg}</span>}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 操作结果提示 */}
+      {result && (
+        <div className={`p-4 rounded-xl border ${result.success ? 'bg-[#F6FFED] border-[#B7EB8F] text-[#52C41A]' : 'bg-[#FFF2F0] border-[#FFCCC7] text-[#FF4D4F]'}`}>
+          {result.msg}
+        </div>
+      )}
+
+      {/* 回滚确认弹窗 */}
+      {confirmHash && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={() => setConfirmHash(null)}>
+          <div className="bg-white rounded-2xl p-6 max-w-md mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-[#FFFBE6] rounded-xl flex items-center justify-center">
+                <AlertCircle className="w-5 h-5 text-[#FAAD14]" />
+              </div>
+              <div>
+                <p className="font-semibold text-[rgba(0,0,0,0.85)]">确认回滚</p>
+                <p className="text-sm text-[rgba(0,0,0,0.45)]">此操作将把线上代码回退到此版本</p>
+              </div>
+            </div>
+            <div className="bg-[#FAFAFA] rounded-xl p-4 mb-4">
+              <p className="text-sm text-[rgba(0,0,0,0.45)]">目标版本</p>
+              <code className="text-sm font-mono text-[rgba(0,0,0,0.85)]">{confirmHash}</code>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setConfirmHash(null)} className="px-4 py-2.5 border border-[#D9D9D9] rounded-xl text-sm hover:bg-[#F5F5F5]">取消</button>
+              <button onClick={() => handleRollback(confirmHash)} disabled={!!rollingBack}
+                className="px-4 py-2.5 bg-[#FF4D4F] text-white rounded-xl text-sm hover:bg-[#CF1322] disabled:opacity-50 flex items-center gap-2">
+                {rollingBack ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />回滚中...</> : <><RotateCcw className="w-4 h-4" />确认回滚</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 部署历史 */}
+      <div className="bg-white rounded-xl border border-[#E8E8E8] overflow-hidden">
+        <div className="px-5 py-4 border-b border-[#F0F0F0] flex items-center justify-between">
+          <h3 className="font-semibold text-[rgba(0,0,0,0.85)]">部署历史</h3>
+          <span className="text-sm text-[rgba(0,0,0,0.45)]">共 {total} 次部署</span>
+        </div>
+        <table className="w-full text-sm">
+          <thead className="bg-[#FAFAFA]">
+            <tr>
+              {['时间', '版本', '提交信息', '部署人', '状态', '操作'].map(h => (
+                <th key={h} className="px-4 py-3 text-left font-medium text-[rgba(0,0,0,0.45)]">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#F0F0F0]">
+            {logs.map(l => {
+              const st = statusLabels[l.status] || statusLabels.success
+              const isCurrent = l.commitHash === currentHash
+              return (
+                <tr key={l.id} className={`hover:bg-[#FAFAFA] ${isCurrent ? 'bg-[#E8F8F0]/30' : ''}`}>
+                  <td className="px-4 py-3 text-[rgba(0,0,0,0.45)] whitespace-nowrap text-xs">{new Date(l.createdAt).toLocaleString('zh-CN')}</td>
+                  <td className="px-4 py-3">
+                    <code className="px-1.5 py-0.5 bg-[#F5F5F5] rounded text-xs font-mono">{l.commitHash.slice(0, 8)}</code>
+                    {isCurrent && <span className="ml-1.5 px-1.5 py-0.5 bg-[#00B578] text-white rounded text-[10px]">当前</span>}
+                  </td>
+                  <td className="px-4 py-3 text-[rgba(0,0,0,0.65)] max-w-xs truncate">{l.commitMsg}</td>
+                  <td className="px-4 py-3 text-[rgba(0,0,0,0.45)]">{l.deployedBy || '-'}</td>
+                  <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-xs ${st.color}`}>{st.label}</span></td>
+                  <td className="px-4 py-3">
+                    {!isCurrent && (
+                      <button onClick={() => setConfirmHash(l.commitHash)} disabled={!!rollingBack}
+                        className="px-2.5 py-1 text-xs text-[#FAAD14] hover:bg-[#FFFBE6] rounded-lg flex items-center gap-1 disabled:opacity-30">
+                        <RotateCcw className="w-3.5 h-3.5" />回退
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+        {logs.length === 0 && (
+          <div className="text-center py-12 text-[rgba(0,0,0,0.45)]">
+            <Rocket className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p>暂无部署记录</p>
+            <p className="text-xs mt-1">每次部署会自动记录到这里</p>
+          </div>
+        )}
+      </div>
+
+      {total > 20 && (
+        <div className="flex justify-center gap-2">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1.5 border border-[#D9D9D9] rounded-lg text-sm disabled:opacity-30">上一页</button>
+          <span className="px-3 py-1.5 text-sm text-[rgba(0,0,0,0.45)]">第 {page} 页</span>
+          <button onClick={() => setPage(p => p + 1)} disabled={page * 20 >= total} className="px-3 py-1.5 border border-[#D9D9D9] rounded-lg text-sm disabled:opacity-30">下一页</button>
         </div>
       )}
     </div>

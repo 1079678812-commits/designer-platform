@@ -218,3 +218,15 @@ model PasswordReset {
   expiresAt DateTime
   createdAt DateTime @default(now())
 }
+
+model DeployLog {
+  id          String   @id @default(cuid())
+  commitHash  String                     // git commit hash
+  commitMsg   String                     // git commit message
+  version     String?                    // 可选版本号标签
+  deployedBy  String?                    // 部署人
+  status      String   @default("success") // success | failed | rolled_back
+  rollbackFrom String?                   // 如果是回滚，记录从哪个版本回退
+  buildTime   Int?                       // 构建耗时（秒）
+  createdAt   DateTime @default(now())
+}
