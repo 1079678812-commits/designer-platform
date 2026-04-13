@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { useAuth } from '@/lib/useAuth'
-import { Search, Plus, Edit, Trash2, FileText, X, ChevronDown, ChevronUp, Upload, Receipt, FileSignature, GripVertical } from 'lucide-react'
+import { Search, Plus, Edit, Trash2, FileText, X, ChevronDown, ChevronUp, Upload, Receipt, FileSignature, GripVertical, Check } from 'lucide-react'
 
 interface OrderItem { id?: string; name: string; quantity: number; unitPrice: number; subtotal: number }
 
@@ -45,11 +45,33 @@ export default function OrdersPage() {
   const [logoUploading, setLogoUploading] = useState(false)
   const logoInputRef = useRef<HTMLInputElement>(null)
 
+  // Status popover state
+  const [statusPopoverOrderId, setStatusPopoverOrderId] = useState<string | null>(null)
+  const statusPopoverRef = useRef<HTMLDivElement>(null)
+
+  // Form status popover
+  const [formStatusOpen, setFormStatusOpen] = useState(false)
+  const formStatusRef = useRef<HTMLDivElement>(null)
+
   // Drag & drop reorder state
   const [dragOrderId, setDragOrderId] = useState<string | null>(null)
   const [dragOverOrderId, setDragOverOrderId] = useState<string | null>(null)
 
   useEffect(() => { if (user) { fetchOrders(); fetchClients(); fetchServices(); fetchDesigners(); } }, [user])
+
+  // Close status popovers on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (statusPopoverRef.current && !statusPopoverRef.current.contains(e.target as Node)) {
+        setStatusPopoverOrderId(null)
+      }
+      if (formStatusRef.current && !formStatusRef.current.contains(e.target as Node)) {
+        setFormStatusOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const fetchOrders = async () => {
     try { const res = await fetch('/api/orders'); if (res.ok) { const data = await res.json(); setOrders(Array.isArray(data) ? data : data.orders || []) } } catch {} finally { setLoading(false) }
@@ -127,14 +149,15 @@ export default function OrdersPage() {
       if (form.clientId) body.clientId = form.clientId
       if (form.serviceId) body.serviceId = form.serviceId
       if (formDesignerIds.length > 0) body.designerIds = formDesignerIds
-      if (editingId) { body.status = form.status; body.progress = form.progress }
+      body.status = form.status
+      body.progress = form.progress
 
       const url = editingId ? `/api/orders/${editingId}` : '/api/orders'
       const method = editingId ? 'PUT' : 'POST'
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (res.ok) {
         setShowModal(false); setForm({ title: '', description: '', amount: 0, deadline: '', clientId: '', serviceId: '', status: 'pending', progress: 0, logo: '' })
-        setItems([emptyItem()]); setEditingId(null); setFormDesignerIds([]); fetchOrders()
+        setItems([emptyItem()]); setEditingId(null); setFormDesignerIds([]); setFormStatusOpen(false); fetchOrders()
       } else { const data = await res.json(); alert(data.error || '操作失败') }
     } catch { alert('网络错误') } finally { setSubmitting(false) }
   }
@@ -163,6 +186,52 @@ export default function OrdersPage() {
 
   const toggleExpand = (id: string) => {
     setExpandedOrders(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
+  }
+
+  // Change order status with smart progress sync
+  const changeOrderStatus = (orderId: string, newStatus: string) => {
+    const order = orders.find(o => o.id === orderId)
+    if (!order) return
+    const fixedMap: Record<string, number> = { pending: 5, confirmed: 10, completed: 100 }
+    let newProgress = order.progress
+    if (newStatus in fixedMap) {
+      newProgress = fixedMap[newStatus]
+    } else if (newStatus === 'in_progress') {
+      newProgress = order.progress < 11 ? 11 : order.progress > 50 ? 50 : order.progress
+    } else if (newStatus === 'review') {
+      newProgress = order.progress < 51 ? 51 : order.progress > 99 ? 75 : order.progress
+    }
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus, progress: newProgress } : o))
+    fetch(`/api/orders/${orderId}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus, progress: newProgress })
+    }).catch(() => fetchOrders())
+    setStatusPopoverOrderId(null)
+  }
+
+  // Status Popover Component
+  const StatusPopover = ({ currentStatus, onChange, anchorRef }: { currentStatus: string; onChange: (status: string) => void; anchorRef?: React.RefObject<HTMLDivElement | null> }) => {
+    const statusKeys = ['pending', 'confirmed', 'in_progress', 'review', 'completed', 'cancelled']
+    return (
+      <div className="absolute left-0 top-full mt-1.5 z-50 bg-white rounded-xl border border-[#E8E8E8] shadow-[0_6px_20px_rgba(0,0,0,0.12)] py-1.5 min-w-[140px] animate-in fade-in-0 zoom-in-95 duration-150"
+        style={{ originY: 'top' }}>
+        <div className="px-3 py-1.5 text-xs text-[rgba(0,0,0,0.35)] font-medium">选择状态</div>
+        {statusKeys.map(key => {
+          const cfg = statusConfig[key]
+          const isSelected = currentStatus === key
+          return (
+            <button key={key} onClick={() => onChange(key)}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${isSelected ? 'bg-[#F5F5F5]' : 'hover:bg-[#FAFAFA]'}`}>
+              <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full border ${cfg.color} text-[9px] font-bold`}>
+                {isSelected && <Check className="w-3 h-3" strokeWidth={3} />}
+              </span>
+              <span className={isSelected ? 'font-medium text-[rgba(0,0,0,0.85)]' : 'text-[rgba(0,0,0,0.65)]'}>{cfg.label}</span>
+              {isSelected && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#00B578]" />}
+            </button>
+          )
+        })}
+      </div>
+    )
   }
 
   // Drag & drop reorder handlers
@@ -245,7 +314,7 @@ export default function OrdersPage() {
       <div className="flex-1 p-4 md:p-8 overflow-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
           <div><h1 className="text-xl md:text-2xl font-bold text-[rgba(0,0,0,0.85)]">订单管理</h1><p className="text-sm text-[rgba(0,0,0,0.45)] mt-1">管理你的设计订单</p></div>
-            <button onClick={() => { setEditingId(null); setForm({ title: '', description: '', amount: 0, deadline: '', clientId: '', serviceId: '', status: 'pending', progress: 0, logo: '' }); setItems([emptyItem()]); setFormDesignerIds([]); setShowModal(true) }} className="flex items-center gap-2 px-4 py-2.5 bg-[#00B578] text-white rounded-lg font-medium hover:bg-[#009A63] transition-colors text-sm"><Plus className="w-4 h-4" /> 新建订单</button>
+            <button onClick={() => { setEditingId(null); setForm({ title: '', description: '', amount: 0, deadline: '', clientId: '', serviceId: '', status: 'pending', progress: 0, logo: '' }); setItems([emptyItem()]); setFormDesignerIds([]); setFormStatusOpen(false); setShowModal(true) }} className="flex items-center gap-2 px-4 py-2.5 bg-[#00B578] text-white rounded-lg font-medium hover:bg-[#009A63] transition-colors text-sm"><Plus className="w-4 h-4" /> 新建订单</button>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-[#E8E8E8] mb-6">
@@ -288,25 +357,19 @@ export default function OrdersPage() {
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <div className="relative group">
-                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium cursor-pointer ${config.color}`}>{config.label} ▾</span>
-                              <select
-                                value={order.status}
-                                onChange={e => {
-                                  const newStatus = e.target.value
-                                  setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: newStatus } : o))
-                                  fetch(`/api/orders/${order.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus }) }).catch(() => fetchOrders())
-                                }}
-                                className="absolute inset-0 opacity-0 cursor-pointer"
-                                style={{ fontSize: '12px' }}
+                            <div className="relative" ref={statusPopoverOrderId === order.id ? statusPopoverRef : null}>
+                              <button
+                                onClick={() => setStatusPopoverOrderId(statusPopoverOrderId === order.id ? null : order.id)}
+                                className={`px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-all hover:shadow-sm ${config.color}`}
                               >
-                                <option value="pending">待确认</option>
-                                <option value="confirmed">已确认</option>
-                                <option value="in_progress">进行中</option>
-                                <option value="review">修改中</option>
-                                <option value="completed">已完成</option>
-                                <option value="cancelled">已取消</option>
-                              </select>
+                                {config.label} ▾
+                              </button>
+                              {statusPopoverOrderId === order.id && (
+                                <StatusPopover
+                                  currentStatus={order.status}
+                                  onChange={(ns) => changeOrderStatus(order.id, ns)}
+                                />
+                              )}
                             </div>
                             {order.service && <span className="text-xs text-[rgba(0,0,0,0.45)]">{order.service.name}</span>}
                           </div>
@@ -354,7 +417,6 @@ export default function OrdersPage() {
                             <button onClick={() => handleEdit(order)} className="p-1.5 hover:bg-[#F5F5F5] rounded-lg text-[rgba(0,0,0,0.45)]"><Edit className="w-4 h-4" /></button>
                             <button onClick={() => window.location.href = '/contracts?orderId=' + order.id} className="p-1.5 hover:bg-[#FFF7E6] rounded-lg text-[#FAAD14]" title="合同"><FileSignature className="w-4 h-4" /></button>
                             <button onClick={() => window.location.href = '/invoices?orderId=' + order.id} className="p-1.5 hover:bg-[#E8F8F0] rounded-lg text-[#00B578]" title="开票"><Receipt className="w-4 h-4" /></button>
-                            <button onClick={() => handleDelete(order.id)} className="p-1.5 hover:bg-[#FFF2F0] rounded-lg text-[#FF4D4F]"><Trash2 className="w-4 h-4" /></button>
                             {(hasItems || order.description || order.client) && (
                               <button onClick={() => toggleExpand(order.id)} className="p-1.5 hover:bg-[#F5F5F5] rounded-lg text-[rgba(0,0,0,0.45)]">
                                 {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -436,7 +498,7 @@ export default function OrdersPage() {
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-xl p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-5"><h2 className="text-lg font-bold">{editingId ? '编辑订单' : '新建订单'}</h2><button onClick={() => { setShowModal(false); setEditingId(null) }} className="p-1 hover:bg-[#F5F5F5] rounded-lg"><X className="w-5 h-5" /></button></div>
+            <div className="flex justify-between items-center mb-5"><h2 className="text-lg font-bold">{editingId ? '编辑订单' : '新建订单'}</h2><button onClick={() => { setShowModal(false); setEditingId(null); setFormStatusOpen(false) }} className="p-1 hover:bg-[#F5F5F5] rounded-lg"><X className="w-5 h-5" /></button></div>
             <div className="space-y-4">
               <div><label className="block text-sm font-medium mb-1">订单标题 *</label><input type="text" value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="如：XX公司品牌设计" className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm" /></div>
 
@@ -534,14 +596,59 @@ export default function OrdersPage() {
                 </div>
               </div>
 
-              {editingId && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div><label className="block text-sm font-medium mb-1">状态</label><select value={form.status} onChange={e => setForm({...form, status: e.target.value})} className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm"><option value="pending">待确认</option><option value="confirmed">已确认</option><option value="in_progress">进行中</option><option value="review">修改中</option><option value="completed">已完成</option><option value="cancelled">已取消</option></select></div>
-                  <div><label className="block text-sm font-medium mb-1">进度 (%)</label><input type="number" value={form.progress} onChange={e => setForm({...form, progress: Number(e.target.value)})} min={0} max={100} className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm" /></div>
+              {/* Status selector - always visible */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">订单状态</label>
+                  <div className="relative" ref={formStatusRef}>
+                    <button
+                      type="button"
+                      onClick={() => setFormStatusOpen(!formStatusOpen)}
+                      className="w-full flex items-center justify-between px-3 py-2.5 border border-[#D9D9D9] rounded-lg text-sm hover:border-[#00B578] transition-colors focus:outline-none focus:border-[#00B578]"
+                    >
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${(statusConfig[form.status] || statusConfig.pending).color}`}>
+                        {(statusConfig[form.status] || statusConfig.pending).label}
+                      </span>
+                      <ChevronDown className={`w-4 h-4 text-[rgba(0,0,0,0.25)] transition-transform ${formStatusOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {formStatusOpen && (
+                      <div className="absolute left-0 top-full mt-1 z-50 bg-white rounded-xl border border-[#E8E8E8] shadow-[0_6px_20px_rgba(0,0,0,0.12)] py-1.5 min-w-full animate-in fade-in-0 zoom-in-95 duration-150">
+                        {['pending', 'confirmed', 'in_progress', 'review', 'completed', 'cancelled'].map(key => {
+                          const cfg = statusConfig[key]
+                          const isSelected = form.status === key
+                          return (
+                            <button key={key} type="button" onClick={() => {
+                              setForm(f => ({ ...f, status: key }))
+                              setFormStatusOpen(false)
+                            }}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${isSelected ? 'bg-[#F5F5F5]' : 'hover:bg-[#FAFAFA]'}`}>
+                              <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full border ${cfg.color} text-[9px] font-bold`}>
+                                {isSelected && <Check className="w-3 h-3" strokeWidth={3} />}
+                              </span>
+                              <span className={isSelected ? 'font-medium text-[rgba(0,0,0,0.85)]' : 'text-[rgba(0,0,0,0.65)]'}>{cfg.label}</span>
+                              {isSelected && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#00B578]" />}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
+                <div><label className="block text-sm font-medium mb-1">进度 (%)</label><input type="number" value={form.progress} onChange={e => setForm({...form, progress: Number(e.target.value)})} min={0} max={100} className="w-full px-3 py-2.5 border border-[#D9D9D9] rounded-lg focus:outline-none focus:border-[#00B578] text-sm" /></div>
+              </div>
             </div>
-            <div className="flex justify-end gap-3 mt-6"><button onClick={() => { setShowModal(false); setEditingId(null) }} className="px-4 py-2.5 border border-[#D9D9D9] rounded-lg text-sm hover:bg-[#F5F5F5]">取消</button><button onClick={handleCreate} disabled={submitting} className="px-4 py-2.5 bg-[#00B578] text-white rounded-lg text-sm hover:bg-[#009A63] disabled:opacity-50">{submitting ? '提交中...' : editingId ? '保存' : '创建'}</button></div>
+            <div className="flex justify-between items-center mt-6">
+              {editingId ? (
+                <button onClick={() => { if (confirm('确定要删除此订单吗？删除后不可恢复。')) { handleDelete(editingId); setShowModal(false); setEditingId(null) } }}
+                  className="px-4 py-2.5 text-[#FF4D4F] hover:bg-[#FFF2F0] rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
+                  <Trash2 className="w-4 h-4" />删除订单
+                </button>
+              ) : <div />}
+              <div className="flex gap-3">
+                <button onClick={() => { setShowModal(false); setEditingId(null); setFormStatusOpen(false) }} className="px-4 py-2.5 border border-[#D9D9D9] rounded-lg text-sm hover:bg-[#F5F5F5]">取消</button>
+                <button onClick={handleCreate} disabled={submitting} className="px-4 py-2.5 bg-[#00B578] text-white rounded-lg text-sm hover:bg-[#009A63] disabled:opacity-50">{submitting ? '提交中...' : editingId ? '保存' : '创建'}</button>
+              </div>
+            </div>
           </div>
         </div>
       )}
